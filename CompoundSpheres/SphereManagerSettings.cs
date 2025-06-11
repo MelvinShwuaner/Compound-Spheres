@@ -2,6 +2,12 @@
 
 namespace CompoundSpheres
 {
+    public enum DisplayMode
+    {
+        ColorOnly = 0,
+        TextureOnly = 1,
+        ColoredTexture = 2
+    }
     /// <summary>
     /// converts a X,Y position and height to a position on the Sphere
     /// </summary>
@@ -25,7 +31,7 @@ namespace CompoundSpheres
     /// <summary>
     /// if true, textures will be displayed on all tiles, if false only colors will be displayed
     /// </summary>
-    public delegate bool ShouldDisplayTextures(SphereManager SphereManager);
+    public delegate DisplayMode GetDisplayMode(SphereManager SphereManager);
     /// <summary>
     /// the Range of Rows around the camera that draw their tiles
     /// </summary>
@@ -69,9 +75,9 @@ namespace CompoundSpheres
         /// </summary>
         public Material SphereTileMaterial;
         /// <summary>
-        /// if true, textures will be displayed on all tiles, if false only colors will be displayed
+        /// how the textures and colors are rendered on each tile, called everytime they are drawn
         /// </summary>
-        public ShouldDisplayTextures ShouldDisplayTextures;
+        public GetDisplayMode GetDisplayMode;
         /// <summary>
         /// the Range of Rows around the camera that draw their tiles
         /// </summary>
@@ -92,15 +98,15 @@ namespace CompoundSpheres
         /// <param name="getSphereTileRotation">gets the rotation of a sphere tile, called once</param>
         /// <param name="getSphereTileScale">gets the scale of the tile, called everytime it is refreshed</param>
         /// <param name="getSphereTileColor">gets the color of the tile, called everytime it is refreshed</param>
-        /// <param name="getSphereTileTexture">gets the index of a texture in the Textures Array, of the tile, called everytime it is refreshed</param>
-        /// <param name="shouldDisplayTextures">if true, tiles will display their textures, otherwise they only display their color, called everytime tiles are rendered</param>
+        /// <param name="getSphereTileTexture">how the textures and colors are rendered on each tile, called everytime they are drawn</param>
+        /// <param name="getdisplaymode">if true, tiles will display their textures, otherwise they only display their color, called everytime tiles are rendered</param>
         /// <param name="Textures">an array of textures that can be displayed, every texture must have same format provided and size</param>
         /// <param name="Format">The Texture format</param>
         /// <param name="mesh">the spheretile mesh, default quad</param>
         /// <param name="material">The Material of the Mesh</param>
         /// <param name="getCameraRange">gets the range of rows that are displayede around the cameraparam</param>
         /// <remarks>the Material MUST have the compound sphere shader or another shader with same functionality</remarks>
-        public SphereManagerSettings(Initiation Initiation, GetSphereTilePosition getSphereTilePosition, GetSphereTileRotation getSphereTileRotation, GetSphereTileScale getSphereTileScale, GetSphereTileColor getSphereTileColor, GetSphereTileTexture getSphereTileTexture, ShouldDisplayTextures shouldDisplayTextures, Texture2D[] Textures, TextureFormat Format, Mesh mesh, Material material, GetCameraRange getCameraRange)
+        public SphereManagerSettings(Initiation Initiation, GetSphereTilePosition getSphereTilePosition, GetSphereTileRotation getSphereTileRotation, GetSphereTileScale getSphereTileScale, GetSphereTileColor getSphereTileColor, GetSphereTileTexture getSphereTileTexture, GetDisplayMode getdisplaymode, Texture2D[] Textures, TextureFormat Format, Mesh mesh, Material material, GetCameraRange getCameraRange)
         {
             getspheretileposition = getSphereTilePosition;
             GetSphereTileRotation = getSphereTileRotation;
@@ -109,7 +115,7 @@ namespace CompoundSpheres
             GetSphereTileColor = getSphereTileColor;
             SphereTileMesh = mesh;
             SphereTileMaterial = material;
-            ShouldDisplayTextures = shouldDisplayTextures;
+            GetDisplayMode = getdisplaymode;
             GetCameraRange = getCameraRange;
             this.Initiation = Initiation;
             TextureArray = new Texture2DArray(Textures[0].width, Textures[0].height, Textures.Length, Format, true, false);
@@ -130,13 +136,13 @@ namespace CompoundSpheres
         /// <param name="getSphereTileScale">gets the scale of the tile, called everytime it is refreshed</param>
         /// <param name="getSphereTileColor">gets the color of the tile, called everytime it is refreshed</param>
         /// <param name="getSphereTileTexture">gets the index of a texture in the Textures Array, of the tile, called everytime it is refreshed</param>
-        /// <param name="shouldDisplayTextures">if true, tiles will display their textures, otherwise they only display their color, called everytime tiles are rendered</param>
+        /// <param name="getdisplaymode">how the textures and colors are rendered on each tile, called everytime they are drawn</param>
         /// <param name="Textures">an array of textures that can be displayed, you must create this and apply it first</param>
         /// <param name="mesh">the spheretile mesh, default quad</param>
         /// <param name="material">The Material of the Mesh</param>
         /// <param name="getCameraRange">gets the range of rows that are displayede around the cameraparam</param>
         /// <remarks>the Material MUST have the compound sphere shader or another shader with same functionality</remarks>
-        public SphereManagerSettings(Initiation Initiation, GetSphereTilePosition getSphereTilePosition, GetSphereTileRotation getSphereTileRotation, GetSphereTileScale getSphereTileScale, GetSphereTileColor getSphereTileColor, GetSphereTileTexture getSphereTileTexture, ShouldDisplayTextures shouldDisplayTextures, Texture2DArray Textures, Mesh mesh, Material material, GetCameraRange getCameraRange)
+        public SphereManagerSettings(Initiation Initiation, GetSphereTilePosition getSphereTilePosition, GetSphereTileRotation getSphereTileRotation, GetSphereTileScale getSphereTileScale, GetSphereTileColor getSphereTileColor, GetSphereTileTexture getSphereTileTexture, GetDisplayMode getdisplaymode, Texture2DArray Textures, Mesh mesh, Material material, GetCameraRange getCameraRange)
         {
             getspheretileposition = getSphereTilePosition;
             GetSphereTileRotation = getSphereTileRotation;
@@ -145,7 +151,7 @@ namespace CompoundSpheres
             GetSphereTileColor = getSphereTileColor;
             SphereTileMesh = mesh;
             SphereTileMaterial = material;
-            ShouldDisplayTextures = shouldDisplayTextures;
+            GetDisplayMode = getdisplaymode;
             GetCameraRange = getCameraRange;
             this.Initiation = Initiation;
             TextureArray = Textures;

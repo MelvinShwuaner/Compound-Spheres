@@ -38,9 +38,9 @@ namespace CompoundSpheres
             Cylinder.transform.parent = Manager.transform;
         }
         /// <summary>
-        /// always display textures by default
+        /// always display colored textures by default
         /// </summary>
-        public static bool DisplayTextures(SphereManager Manager) { return true; }
+        public static DisplayMode DefaultMode(SphereManager Manager) { return DisplayMode.ColoredTexture; }
         /// <summary>
         /// by default, render one half of the cylinder (which is facing the camera)
         /// </summary>

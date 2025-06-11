@@ -54,7 +54,7 @@ namespace CompoundSpheres
         GetSphereTileScale getSphereTileScale;
         GetSphereTileTexture getSphereTileTexture;
         GetSphereTileColor getSphereTileColor;
-        ShouldDisplayTextures shouldDisplayTextures;
+        GetDisplayMode getdisplaymode;
         GetCameraRange GetCameraRange;
         #endregion
         private void OnDestroy()
@@ -77,7 +77,7 @@ namespace CompoundSpheres
             getSphereTileRotation = sphereManagerSettings.GetSphereTileRotation;
             getSphereTileScale = sphereManagerSettings.GetSphereTileScale;
             SphereTilePos = sphereManagerSettings.getspheretileposition;
-            shouldDisplayTextures = sphereManagerSettings.ShouldDisplayTextures;
+            getdisplaymode = sphereManagerSettings.GetDisplayMode;
             GetCameraRange = sphereManagerSettings.GetCameraRange;
             Material.SetTexture("TextureArray", sphereManagerSettings.TextureArray);
             Radius = Rows / (2 * Mathf.PI);
@@ -111,8 +111,7 @@ namespace CompoundSpheres
         public void DrawTiles(int CameraX)
         {
             GetCameraRange(this, out int Min, out int Max);
-            bool DisplayTextures = shouldDisplayTextures(this);
-            Material.SetFloat("ShouldRenderTextures", DisplayTextures ? 1.0f : 0.0f);
+            Material.SetFloat("ShouldRenderTextures", (int)getdisplaymode(this));
             for (int i = Min; i < Max; i++)
             {
                 int I = (int)Clamp(CameraX, i);
