@@ -58,6 +58,9 @@ Shader "CompoundSphere"
                 if(ShouldRenderTextures == 1){
                     return UNITY_SAMPLE_TEX2DARRAY(TextureArray, i.uv);
                 }
+                if(ShouldRenderTextures == 2){
+                    return UNITY_SAMPLE_TEX2DARRAY(TextureArray, i.uv) * i.color;
+                }
                 return i.color;
             }
             ENDHLSL
