@@ -46,7 +46,6 @@ Shader "CompoundSphere"
             {
                 const float4 pos = mul(Matrixes[instance_id], v.vertex);
                 float4 color = Colors[instance_id];
-                float z = (float)instance_id;
                 varyings o;
                 o.vertex = mul(UNITY_MATRIX_VP, pos);
                 o.color = color;
