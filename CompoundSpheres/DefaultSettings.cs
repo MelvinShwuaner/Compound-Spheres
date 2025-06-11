@@ -18,6 +18,10 @@ namespace CompoundSpheres
             float z = Y;
             return new Vector3(x, y, z);
         }
+        /// <summary>
+        /// all tiles will display the first texture in the array
+        /// </summary>
+        public static int DefaultTextureIndex(SphereTile tile) { return 0; }
 
         /// <summary>
         /// Rotates objects on a cylinder away from their center, the center having the same Z coordinate
@@ -63,7 +67,7 @@ namespace CompoundSpheres
         /// <summary>
         /// default texture is a circle
         /// </summary>
-        public static Texture2D DefaultTexture(SphereTile Tile) { return Resources.Load<Texture2D>("Library/unity default resources/box"); }
+        public static Texture2D DefaultTexture{ get { return Resources.Load<Texture2D>("Library/unity default resources/box"); } }
         /// <summary>
         /// the default mesh on the sphere
         /// </summary>

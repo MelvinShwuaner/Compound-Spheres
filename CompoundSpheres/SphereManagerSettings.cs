@@ -2,10 +2,22 @@
 
 namespace CompoundSpheres
 {
+    /// <summary>
+    /// the mode which indicates how tiles are displayed
+    /// </summary>
     public enum DisplayMode
     {
+        /// <summary>
+        /// only the colors are displayed on each tile
+        /// </summary>
         ColorOnly = 0,
+        /// <summary>
+        /// only the textures are displayed on each tile
+        /// </summary>
         TextureOnly = 1,
+        /// <summary>
+        /// the textures are displayed, and the color is applied over them
+        /// </summary>
         ColoredTexture = 2
     }
     /// <summary>

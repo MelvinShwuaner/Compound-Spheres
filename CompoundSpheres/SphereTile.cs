@@ -32,6 +32,9 @@ namespace CompoundSpheres
         /// the color of this tile, represented by vector4
         /// </summary>
         public Vector4 Color => Manager.SphereTileColor(this);
+        /// <summary>
+        /// the texture index of this sphere tile in the managers texture array
+        /// </summary>
         public int TextureIndex => Manager.SphereTileTexture(this);
         /// <summary>
         /// the Row this tile is Im
@@ -50,55 +53,78 @@ namespace CompoundSpheres
             Rotation = Quaternion.identity;
             Rotation = row.SphereManager.GetSphereTileRotation(this);
         }
+        /// <inheritdoc/>
         public override string ToString()
         {
             return ToString(null, null);
         }
+        /// <summary>
+        /// returns a string representing this sphere tile
+        /// </summary>
         public string ToString(string format, IFormatProvider formatProvider)
         {
             formatProvider ??= CultureInfo.InvariantCulture.NumberFormat;
             format ??= "F5";
             return $"Tile {X.ToString(format, formatProvider)}, {Y.ToString(format, formatProvider)} Managed By {Manager.gameObject.name}";
         }
+        /// <summary>
+        /// if the X coordinates are different, compares them and returns the result, otherwise it compares the Y coordinates and returns the result
+        /// </summary>
         public int CompareTo(SphereTile other)
         {
             if (X != other.X)
             {
                 return X.CompareTo(other.X);
             }
-            if (Y != other.Y)
-            {
-                return Y.CompareTo(other.Y);
-            }
-            return 0;
+            return Y.CompareTo(other.Y);
         }
+        /// <inheritdoc/>
         public override bool Equals(object obj)
         {
             return Equals((SphereTile)obj);
         }
+        /// <inheritdoc/>
         public override int GetHashCode()
         {
             return base.GetHashCode();
         }
+        /// <summary>
+        /// returns true if both coordinates are the same and are managed by the same manager
+        /// </summary>
         public bool Equals(SphereTile other)
         {
             return CompareTo(other) == 0 && other.Manager == Manager;
         }
+        /// <summary>
+        /// the 1D coordinates of a sphere tile
+        /// </summary>
         public static implicit operator int(SphereTile Tile)
         {
             return (Tile.X * Tile.Row.Cols) + Tile.Y;
         }
+        /// <summary>
+        /// the color of the sphere tile
+        /// </summary>
         public static implicit operator Vector4(SphereTile Tile)
         {
             return Tile.Color;
         }
+        /// <summary>
+        /// a Matrix4x4 representing the position, scale, rotation of the sphere tile
+        /// </summary>
         public static implicit operator Matrix4x4(SphereTile tile)
         {
             return Matrix4x4.TRS(tile.Position, tile.Rotation, tile.Scale);
         }
+        /// <summary>
+        /// returns true if both coordinates are the same and are managed by the same manager
+        /// </summary>
         public static bool operator ==(SphereTile Tile, SphereTile Tile2){
             return Tile.Equals(Tile2);
         }
+        /// <summary>
+        /// returns true if both coordinates are different or are managed by different managers
+        /// </summary>
         public static bool operator !=(SphereTile Tile, SphereTile Tile2)
         {
             return !Tile.Equals(Tile2);

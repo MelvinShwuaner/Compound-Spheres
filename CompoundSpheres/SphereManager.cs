@@ -7,7 +7,7 @@ namespace CompoundSpheres
     /// <summary>
     /// The Manager For Your Compound Sphere
     /// </summary>
-    public class SphereManager : MonoBehaviour, IEnumerable, IDisposable
+    public class SphereManager : MonoBehaviour, IEnumerable
     {
         /// <summary>
         /// a spheretile at x and y coordinates
@@ -59,11 +59,20 @@ namespace CompoundSpheres
         #endregion
         private void OnDestroy()
         {
-            Dispose();
+            foreach (SphereRow row in this)
+            {
+                row.Finish();
+            }
+            commandBuf.Release();
+            SphereRows = null;
+            SphereTiles = null;
         }
-        ~SphereManager()
+        /// <summary>
+        /// destroys the sphere manager and its game object, and frees up all memory
+        /// </summary>
+        public void Destroy()
         {
-            Dispose();
+            Destroy(gameObject);
         }
         internal SphereManager Init(int cols, int rows, SphereManagerSettings sphereManagerSettings)
         {
@@ -91,6 +100,7 @@ namespace CompoundSpheres
 
             return this;
         }
+        private SphereManager() { }
         /// <summary>
         /// clamps a position + change to the Y Axis
         /// </summary>
@@ -116,6 +126,17 @@ namespace CompoundSpheres
             {
                 int I = (int)Clamp(CameraX, i);
                 SphereRows[I].DrawTiles();
+            }
+        }
+        /// <summary>
+        /// draws all tiles, even if they are not visible, NOT RECOMMENDED!
+        /// </summary>
+        public void DrawAllTiles()
+        {
+            Material.SetFloat("ShouldRenderTextures", (int)getdisplaymode(this));
+            foreach (SphereRow row in this)
+            {
+                row.DrawTiles();
             }
         }
         /// <summary>
@@ -155,21 +176,13 @@ namespace CompoundSpheres
         {
             return getSphereTileTexture(SphereTile);
         }
-
+        /// <summary>
+        /// the sphere manager acts as a list of sphere rows
+        /// </summary>
         public IEnumerator GetEnumerator()
         {
             return SphereRows.GetEnumerator();
         }
-
-        public void Dispose()
-        {
-            foreach (SphereRow row in this)
-            {
-                row.Dispose();
-            }
-            commandBuf.Release();
-        }
-
         /// <summary>
         /// Creates Spheremanagers
         /// </summary>
