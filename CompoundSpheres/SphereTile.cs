@@ -129,5 +129,25 @@ namespace CompoundSpheres
         {
             return !Tile.Equals(Tile2);
         }
+        /// <inheritdoc/>
+        public static bool operator >(SphereTile Tile, SphereTile Tile2)
+        {
+            return Tile.CompareTo(Tile2) > 0;
+        }
+        /// <inheritdoc/>
+        public static bool operator <(SphereTile Tile, SphereTile Tile2)
+        {
+            return Tile.CompareTo(Tile2) < 0;
+        }
+        /// <inheritdoc/>
+        public static bool operator >=(SphereTile Tile, SphereTile Tile2)
+        {
+            return Tile.CompareTo(Tile) >= 0;
+        }
+        /// <inheritdoc/>
+        public static bool operator <=(SphereTile Tile, SphereTile Tile2)
+        {
+            return Tile.CompareTo(Tile2) <= 0;
+        }
     }
 }

@@ -181,7 +181,7 @@ namespace CompoundSpheres
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            return Equals((SphereTile)obj);
+            return Equals((SphereRow)obj);
         }
         /// <inheritdoc/>
         public override int GetHashCode()
@@ -222,6 +222,34 @@ namespace CompoundSpheres
         public static bool operator !=(SphereRow Tile, SphereRow Tile2)
         {
             return !Tile.Equals(Tile2);
+        }
+        /// <summary>
+        /// returns true if the x cord is bigger
+        /// </summary>
+        public static bool operator >(SphereRow Tile, SphereRow Tile2)
+        {
+            return Tile.CompareTo(Tile2) > 0;
+        }
+        /// <summary>
+        /// returns true if the x cord is smaller
+        /// </summary>
+        public static bool operator <(SphereRow Tile, SphereRow Tile2)
+        {
+            return Tile.CompareTo(Tile2) < 0;
+        }
+        /// <summary>
+        /// returns true if the x cord is equal or bigger
+        /// </summary>
+        public static bool operator >=(SphereRow Tile, SphereRow Tile2)
+        {
+            return Tile.CompareTo(Tile) >= 0;
+        }
+        /// <summary>
+        /// returns true if the x cord is equal or smaller
+        /// </summary>
+        public static bool operator <=(SphereRow Tile, SphereRow Tile2)
+        {
+            return Tile.CompareTo(Tile2) <= 0;
         }
         private Matrix4x4[] _matrices;
         private Vector4[] _colors;
