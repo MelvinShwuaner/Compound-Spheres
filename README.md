@@ -72,9 +72,6 @@ if you have a custom shader that also lets you make the tiles glow, and you want
     }
 normally you have to manually release buffer memory, but here you dont! the manager will automatically release it once you destroy the manager.
 the add custom buffer requires you to provide how much bytes one variable requires, remember that floats take 4 bytes, so if you are storing vector3's then you need 12 bytes cuz it has 3 floats.
-## Delete a file
-
-You can delete the current file by clicking the **Remove** button in the file explorer. The file will be moved into the **Trash** folder and automatically deleted after 7 days of inactivity.
 
 ## Sphere tiles
 sphere tiles are readonly, you cannot change their position and rotation once created, but their scales, texture and color are provided by a function and are not stored in memory, so every time they are accessed the function is called. this because if you move it / rotate it a gap can form in the sphere!
