@@ -36,7 +36,7 @@ here is an example of how to create a sphere manager
         DefaultSettings.DefaultRange
     );
     
-    SphereManager Manager = SphereManager.Creator.CreateSphereManager(Cols, Rows, settings, "My New Sphere Manager");
+    SphereManager Manager = SphereManager.Creator.CreateSphereManager(Rows, Cols, settings, "My New Sphere Manager");
     
     //finish
     Manager.Destroy();
