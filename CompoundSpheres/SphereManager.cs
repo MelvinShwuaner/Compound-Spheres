@@ -74,7 +74,7 @@ namespace CompoundSpheres
         {
             Destroy(gameObject);
         }
-        internal SphereManager Init(int cols, int rows, SphereManagerSettings sphereManagerSettings)
+        internal SphereManager Init(int rows, int cols, SphereManagerSettings sphereManagerSettings)
         {
             Cols = cols;
             Rows = rows;
@@ -90,7 +90,7 @@ namespace CompoundSpheres
             GetCameraRange = sphereManagerSettings.GetCameraRange;
             Material.SetTexture("TextureArray", sphereManagerSettings.TextureArray);
             Radius = Rows / (2 * Mathf.PI);
-            SphereTiles = new SphereTile[cols, rows];
+            SphereTiles = new SphereTile[rows, cols];
             SphereRows = new SphereRow[rows];
             commandBuf = new GraphicsBuffer(GraphicsBuffer.Target.IndirectArguments, 1, GraphicsBuffer.IndirectDrawIndexedArgs.size);
             GraphicsBuffer.IndirectDrawIndexedArgs[] commandData = new GraphicsBuffer.IndirectDrawIndexedArgs[1];
@@ -102,7 +102,7 @@ namespace CompoundSpheres
         }
         private SphereManager() { }
         /// <summary>
-        /// clamps a position + change to the Y Axis
+        /// clamps a position + change to the X Axis
         /// </summary>
         public float Clamp(float Pos, float Change)
         {
@@ -193,14 +193,14 @@ namespace CompoundSpheres
             /// </summary>
             /// <exception cref="ArgumentException">cols and rows must be above 0</exception>
             /// <remarks>this will create a game object with a sphere manager attached to it!</remarks>
-            public static SphereManager CreateSphereManager(int cols, int rows, SphereManagerSettings sphereManagerSettings, string Name = "SphereManager")
+            public static SphereManager CreateSphereManager(int rows, int cols, SphereManagerSettings sphereManagerSettings, string Name = "SphereManager")
             {
                 if(cols <= 0 || rows <= 0)
                 {
                     throw new ArgumentException("Cols And Rows must be above 0 when creating a sphere manager");
                 }
                 GameObject SphereManager = new GameObject(Name);
-                SphereManager Manager = SphereManager.AddComponent<SphereManager>().Init(cols, rows, sphereManagerSettings);
+                SphereManager Manager = SphereManager.AddComponent<SphereManager>().Init(rows, cols, sphereManagerSettings);
                 for (int X = 0; X < rows; X++)
                 {
                     SphereRow row = Manager.SphereRows[X] = new SphereRow(Manager, X);
