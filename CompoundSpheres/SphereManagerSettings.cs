@@ -18,7 +18,11 @@ namespace CompoundSpheres
         /// <summary>
         /// the textures are displayed, and the color is applied over them
         /// </summary>
-        ColoredTexture = 2
+        ColoredTexture = 2,
+        /// <summary>
+        /// the color is added to the texture
+        /// </summary>
+        ColorAndTexture = 3
     }
     /// <summary>
     /// converts a X,Y position and height to a position on the Sphere
@@ -167,6 +171,23 @@ namespace CompoundSpheres
             GetCameraRange = getCameraRange;
             this.Initiation = Initiation;
             TextureArray = Textures;
+        }
+        /// <summary>
+        /// copies settings from another setting, allows you to also add a new mesh since that is the most commonly modified setting
+        /// </summary>
+        public SphereManagerSettings(SphereManagerSettings Original, Mesh OverrideMesh = null)
+        {
+            getspheretileposition = Original.getspheretileposition;
+            GetSphereTileRotation = Original.GetSphereTileRotation;
+            GetSphereTileScale = Original.GetSphereTileScale;
+            GetSphereTileTexture = Original.GetSphereTileTexture;
+            GetSphereTileColor = Original.GetSphereTileColor;
+            SphereTileMesh = OverrideMesh ?? Original.SphereTileMesh;
+            SphereTileMaterial = Original.SphereTileMaterial;
+            GetDisplayMode = Original.GetDisplayMode;
+            GetCameraRange = Original.GetCameraRange;
+            Initiation = Original.Initiation;
+            TextureArray = Original.TextureArray;
         }
     }
 }
