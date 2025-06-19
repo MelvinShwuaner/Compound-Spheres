@@ -140,7 +140,7 @@ namespace CompoundSpheres
         /// <remarks>your compute buffer will be automatically released from memory once sphere is destroyed</remarks>
         public ComputeBuffer AddCustomBuffer(string Name, int Size)
         {
-            ComputeBuffer Buffer = new ComputeBuffer(Cols, Size);
+            ComputeBuffer Buffer = new ComputeBuffer(Cols, Size, ComputeBufferType.Default, ComputeBufferMode.SubUpdates);
             Properties.SetBuffer(Name, Buffer);
             CustomBuffers ??= new List<ComputeBuffer>();
             CustomBuffers.Add(Buffer);
