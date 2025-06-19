@@ -2,13 +2,14 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
+using Unity.Collections;
 using UnityEngine;
 namespace CompoundSpheres
 {
     /// <summary>
     /// sphere rows control the displaying of tiles
     /// </summary>
-    public class SphereRow: IEnumerable, IEquatable<SphereRow>, IComparable<SphereRow>, IFormattable
+    public class SphereRow : IEnumerable, IEquatable<SphereRow>, IComparable<SphereRow>, IFormattable
     {
         /// <summary>
         /// the manager of this row
@@ -36,18 +37,18 @@ namespace CompoundSpheres
         internal SphereRow(SphereManager manager, int Row)
         {
             SphereManager = manager;
-            _matrices = new Matrix4x4[Cols];
-            _colors = new Vector4[Cols];
-            _textures = new float[Cols];
+            _matrices = new HashSet<int>();
+            _colors = new HashSet<int>();
+            _textures = new HashSet<int>();
             this.Row = Row;
             _rp = new RenderParams(manager.Material)
             {
                 worldBounds = new Bounds(Vector3.zero, Vector3.one * 1000),
                 matProps = new MaterialPropertyBlock()
             };
-            Matrixes = new ComputeBuffer(Cols, 64);
-            Colors = new ComputeBuffer(Cols, 16);
-            Textures = new ComputeBuffer(Cols, 4);
+            Matrixes = new ComputeBuffer(Cols, 64, ComputeBufferType.Structured, ComputeBufferMode.SubUpdates);
+            Colors = new ComputeBuffer(Cols, 16, ComputeBufferType.Structured, ComputeBufferMode.SubUpdates);
+            Textures = new ComputeBuffer(Cols, 4, ComputeBufferType.Structured, ComputeBufferMode.SubUpdates);
         }
         /// <summary>
         /// update a tile's matrix, color, and texture
@@ -64,7 +65,7 @@ namespace CompoundSpheres
         /// <param name="i"></param>
         public void UpdateMatrix(int i)
         {
-            _matrices[i] = this[i];
+            _matrices.Add(i);
         }
         /// <summary>
         /// update a tiles color
@@ -72,7 +73,7 @@ namespace CompoundSpheres
         /// <param name="i"></param>
         public void UpdateColor(int i)
         {
-            _colors[i] = this[i];
+            _colors.Add(i);
         }
         /// <summary>
         /// update a tiles texture
@@ -80,7 +81,7 @@ namespace CompoundSpheres
         /// <param name="i"></param>
         public void UpdateTexture(int i)
         {
-            _textures[i] = this[i].TextureIndex;
+            _textures.Add(i);
         }
         internal void Begin()
         {
@@ -122,36 +123,55 @@ namespace CompoundSpheres
         /// </summary>
         public void RefreshMatrixes()
         {
-            Matrixes.SetData(_matrices);
+            NativeArray<Matrix4x4> array = Matrixes.BeginWrite<Matrix4x4>(0, Cols);
+            foreach(var i in _matrices)
+            {
+                array[i] = this[i];
+            }
+            Matrixes.EndWrite<Matrix4x4>(_matrices.Count);
+            _matrices.Clear();
         }
         /// <summary>
         /// refresh the color array
         /// </summary>
         public void RefreshColors()
         {
-            Colors.SetData(_colors);
+            NativeArray<Vector4> array = Colors.BeginWrite<Vector4>(0, Cols);
+            foreach (var i in _colors)
+            {
+                array[i] = this[i];
+            }
+            Colors.EndWrite<Vector4>(_colors.Count);
+            _colors.Clear();
         }
         /// <summary>
         /// adds a custom buffer to this sphererow, which is then accessed by the GPU
         /// </summary>
         /// <param name="Name">the name of the buffer in the custom shader, must be unique</param>
+        /// <param name="getcustomdata">a function that returns a struct to be stored in the buffer</param>
         /// <param name="Size">the size of each variable in the buffer, in bytes. for example if you are storing floats it will be 4 because floats take up 4 bytes</param>
         /// <returns>a compute buffer, to refresh it call buffer.setdata</returns>
         /// <remarks>your compute buffer will be automatically released from memory once sphere is destroyed</remarks>
-        public ComputeBuffer AddCustomBuffer(string Name, int Size)
+        public CustomBuffer<T> AddCustomBuffer<T>(string Name, GetCustomData<T> getcustomdata, int Size) where T : struct
         {
-            ComputeBuffer Buffer = new ComputeBuffer(Cols, Size, ComputeBufferType.Default, ComputeBufferMode.SubUpdates);
+            ComputeBuffer Buffer = new ComputeBuffer(Cols, Size, ComputeBufferType.Structured, ComputeBufferMode.SubUpdates);
             Properties.SetBuffer(Name, Buffer);
             CustomBuffers ??= new List<ComputeBuffer>();
             CustomBuffers.Add(Buffer);
-            return Buffer;
+            return new CustomBuffer<T>(this, Buffer, getcustomdata);
         }
         /// <summary>
         /// refresh the texture array
         /// </summary>
         public void RefreshTextures()
         {
-            Textures.SetData(_textures);
+            NativeArray<float> array = Textures.BeginWrite<float>(0, Cols);
+            foreach (var i in _textures)
+            {
+                array[i] = this[i].TextureIndex;
+            }
+            Textures.EndWrite<float>(_textures.Count);
+            _textures.Clear();
         }
         internal void Finish()
         {
@@ -251,11 +271,52 @@ namespace CompoundSpheres
         {
             return Tile.CompareTo(Tile2) <= 0;
         }
-        private Matrix4x4[] _matrices;
-        private Vector4[] _colors;
-        private float[] _textures;
         private RenderParams _rp;
+        private HashSet<int> _matrices, _colors, _textures;
         private ComputeBuffer Matrixes, Colors, Textures;
         private List<ComputeBuffer> CustomBuffers;
+    }
+    /// <summary>
+    /// a class for managing a buffer efficiently
+    /// </summary>
+    public class CustomBuffer<T> where T : struct
+    {
+        /// <summary>
+        /// the row this is managing
+        /// </summary>
+        public SphereRow Row;
+        /// <summary>
+        /// the buffer this is managing
+        /// </summary>
+        public ComputeBuffer Buffer;
+        readonly HashSet<int> ToUpdate;
+        readonly GetCustomData<T> getCustomData;
+        /// <summary>
+        /// refreshes all of the data
+        /// </summary>
+        public void Refresh()
+        {
+            NativeArray<T> array = Buffer.BeginWrite<T>(0, Row.Cols);
+            foreach (var i in ToUpdate)
+            {
+                array[i] = getCustomData(Row[i]);
+            }
+            Buffer.EndWrite<T>(ToUpdate.Count);
+            ToUpdate.Clear();
+        }
+        internal CustomBuffer(SphereRow Row, ComputeBuffer Buffer, GetCustomData<T> getdata)
+        {
+            getCustomData = getdata;
+            ToUpdate = new HashSet<int>();
+            this.Row = Row;
+            this.Buffer = Buffer;
+        }
+        /// <summary>
+        /// marks a sphere tile to be refreshed
+        /// </summary>
+        public void Update(int i)
+        {
+            ToUpdate.Add(i);
+        }
     }
 }

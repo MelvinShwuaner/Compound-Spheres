@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 namespace CompoundSpheres
 {
@@ -24,6 +25,10 @@ namespace CompoundSpheres
         /// </summary>
         ColorAndTexture = 3
     }
+    /// <summary>
+    /// a function that returns a custom data
+    /// </summary>
+    public delegate T GetCustomData<T>(SphereTile Tile) where T : struct;
     /// <summary>
     /// converts a X,Y position and height to a position on the Sphere
     /// </summary>

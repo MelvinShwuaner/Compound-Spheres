@@ -206,7 +206,7 @@ namespace CompoundSpheres
                     SphereRow row = Manager.SphereRows[X] = new SphereRow(Manager, X);
                     for (int Y = 0; Y < cols; Y++)
                     {
-                        Manager.SphereTiles[X, Y] = new(X, Y, row);
+                        Manager.SphereTiles[X, Y] = new SphereTile(X, Y, row);
                     }
                     row.Begin();
                 }
