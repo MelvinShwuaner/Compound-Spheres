@@ -1,8 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>net4.8</TargetFramework>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
+	<LangVersion>8.0</LangVersion>
+	<AllowUnsafeBlocks>False</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>

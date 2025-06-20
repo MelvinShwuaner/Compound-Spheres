@@ -65,7 +65,7 @@ namespace CompoundSpheres
         {
             formatProvider ??= CultureInfo.InvariantCulture.NumberFormat;
             format ??= "F5";
-            return $"Tile {X.ToString(format, formatProvider)}, {Y.ToString(format, formatProvider)} Managed By {Manager.gameObject.name}";
+            return $"Tile {X.ToString(format, formatProvider)}, {Y.ToString(format, formatProvider)} Managed By {Row}";
         }
         /// <summary>
         /// if the X coordinates are different, compares them and returns the result, otherwise it compares the Y coordinates and returns the result
@@ -105,7 +105,7 @@ namespace CompoundSpheres
         /// <summary>
         /// the color of the sphere tile
         /// </summary>
-        public static implicit operator Vector4(SphereTile Tile)
+        public static implicit operator Vector3(SphereTile Tile)
         {
             return Tile.Color;
         }

@@ -1,8 +1,64 @@
 ﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace CompoundSpheres
 {
+    /// <summary>
+    /// a interface so the manager can import custom buffers of different types
+    /// </summary>
+    public interface IBufferData {
+        /// <summary>
+        /// adds a custom buffer to a manager and returns it
+        /// </summary>
+        IBuffer GetBuffer(SphereManager sphereManager);
+        /// <summary>
+        /// the name of the custom buffer
+        /// </summary>
+        string GetName();
+    }
+    /// <summary>
+    /// a custom buffer configuration, which tells the sphere manager to add a new compute buffer
+    /// </summary>
+    public struct CustomBufferData<T> : IBufferData where T : struct
+    {
+        /// <summary>
+        /// a function that returns your custom data for each sphere tile
+        /// </summary>
+        public GetCustomData<T> getCustomData;
+        /// <summary>
+        /// the name of this buffer, in your custom shader
+        /// </summary>
+        public string Name;
+        /// <summary>
+        /// the size of the data being stored, in bytes
+        /// </summary>
+        public int Size;
+        /// <summary>
+        /// a custom buffer configuration, which tells the sphere manager to add a new compute buffer
+        /// </summary>
+        /// <param name="Name">the name of this buffer, in your custom shader</param>
+        /// <param name="Size">the size of the data being stored, in bytes</param>
+        /// <param name="getCustomData">a function that returns your custom data for each sphere tile</param>
+        public CustomBufferData(string Name, int Size, GetCustomData<T> getCustomData)
+        {
+            this.Name = Name;
+            this.Size = Size;
+            this.getCustomData = getCustomData;
+        }
+        /// <inheritdoc/>
+        public readonly IBuffer GetBuffer(SphereManager sphereManager)
+        {
+            GraphicsBuffer Buffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, GraphicsBuffer.UsageFlags.LockBufferForWrite, sphereManager.Cols, Size);
+            sphereManager.Material.SetBuffer(Name, Buffer);
+            return new CustomBuffer<T>(sphereManager, Buffer, getCustomData);
+        }
+        /// <inheritdoc/>
+        public readonly string GetName()
+        {
+            return Name;
+        }
+    }
     /// <summary>
     /// the mode which indicates how tiles are displayed
     /// </summary>
@@ -108,6 +164,14 @@ namespace CompoundSpheres
         /// </summary>
         public Texture2DArray TextureArray;
         /// <summary>
+        /// a list of custom buffers this manager's shader has (Optional)
+        /// </summary>
+        public List<IBufferData> CustomBuffers;
+        /// <summary>
+        /// the max distance between two tiles on the sphere to be included in the same batch to be sent to the gpu, if there are tiles in between, they will also be sent to the gpu and their data is recalculated!
+        /// </summary>
+        public int BufferSize;
+        /// <summary>
         /// called once the manager is created
         /// </summary>
         public Initiation Initiation;
@@ -124,10 +188,12 @@ namespace CompoundSpheres
         /// <param name="Textures">an array of textures that can be displayed, every texture must have same format provided and size</param>
         /// <param name="Format">The Texture format</param>
         /// <param name="mesh">the spheretile mesh, default quad</param>
+        /// <param name="BufferSize">the max distance between two tiles on the sphere to be included in the same batch to be sent to the gpu, if there are tiles in between, they will also be sent to the gpu and their data is recalculated!</param>
         /// <param name="material">The Material of the Mesh</param>
         /// <param name="getCameraRange">gets the range of rows that are displayede around the cameraparam</param>
+        /// <param name="custombuffers">a list of custom buffers this manager's shader has (Optional)</param>
         /// <remarks>the Material MUST have the compound sphere shader or another shader with same functionality</remarks>
-        public SphereManagerSettings(Initiation Initiation, GetSphereTilePosition getSphereTilePosition, GetSphereTileRotation getSphereTileRotation, GetSphereTileScale getSphereTileScale, GetSphereTileColor getSphereTileColor, GetSphereTileTexture getSphereTileTexture, GetDisplayMode getdisplaymode, Texture2D[] Textures, TextureFormat Format, Mesh mesh, Material material, GetCameraRange getCameraRange)
+        public SphereManagerSettings(Initiation Initiation, GetSphereTilePosition getSphereTilePosition, GetSphereTileRotation getSphereTileRotation, GetSphereTileScale getSphereTileScale, GetSphereTileColor getSphereTileColor, GetSphereTileTexture getSphereTileTexture, GetDisplayMode getdisplaymode, Texture2D[] Textures, TextureFormat Format, Mesh mesh, Material material, GetCameraRange getCameraRange, List<IBufferData> custombuffers = null, int BufferSize = 1)
         {
             getspheretileposition = getSphereTilePosition;
             GetSphereTileRotation = getSphereTileRotation;
@@ -147,6 +213,8 @@ namespace CompoundSpheres
                 TextureArray.SetPixels32(Textures[i].GetPixels32(), i);
             }
             TextureArray.Apply();
+            CustomBuffers = custombuffers;
+            this.BufferSize = BufferSize;
         }
         /// <summary>
         /// Settings for a sphere manager
@@ -157,13 +225,15 @@ namespace CompoundSpheres
         /// <param name="getSphereTileScale">gets the scale of the tile, called everytime it is refreshed</param>
         /// <param name="getSphereTileColor">gets the color of the tile, called everytime it is refreshed</param>
         /// <param name="getSphereTileTexture">gets the index of a texture in the Textures Array, of the tile, called everytime it is refreshed</param>
+        /// <param name="BufferSize">the max distance between two tiles on the sphere to be included in the same batch to be sent to the gpu, if there are tiles in between, they will also be sent to the gpu and their data is recalculated!</param>
         /// <param name="getdisplaymode">how the textures and colors are rendered on each tile, called everytime they are drawn</param>
         /// <param name="Textures">an array of textures that can be displayed, you must create this and apply it first</param>
         /// <param name="mesh">the spheretile mesh, default quad</param>
         /// <param name="material">The Material of the Mesh</param>
+        /// <param name="custombuffers">a list of custom buffers this manager's shader has (Optional)</param>
         /// <param name="getCameraRange">gets the range of rows that are displayede around the cameraparam</param>
         /// <remarks>the Material MUST have the compound sphere shader or another shader with same functionality</remarks>
-        public SphereManagerSettings(Initiation Initiation, GetSphereTilePosition getSphereTilePosition, GetSphereTileRotation getSphereTileRotation, GetSphereTileScale getSphereTileScale, GetSphereTileColor getSphereTileColor, GetSphereTileTexture getSphereTileTexture, GetDisplayMode getdisplaymode, Texture2DArray Textures, Mesh mesh, Material material, GetCameraRange getCameraRange)
+        public SphereManagerSettings(Initiation Initiation, GetSphereTilePosition getSphereTilePosition, GetSphereTileRotation getSphereTileRotation, GetSphereTileScale getSphereTileScale, GetSphereTileColor getSphereTileColor, GetSphereTileTexture getSphereTileTexture, GetDisplayMode getdisplaymode, Texture2DArray Textures, Mesh mesh, Material material, GetCameraRange getCameraRange, List<IBufferData> custombuffers = null, int BufferSize = 1)
         {
             getspheretileposition = getSphereTilePosition;
             GetSphereTileRotation = getSphereTileRotation;
@@ -176,6 +246,8 @@ namespace CompoundSpheres
             GetCameraRange = getCameraRange;
             this.Initiation = Initiation;
             TextureArray = Textures;
+            CustomBuffers = custombuffers;
+            this.BufferSize= BufferSize;
         }
         /// <summary>
         /// copies settings from another setting, allows you to also add a new mesh since that is the most commonly modified setting
@@ -187,12 +259,14 @@ namespace CompoundSpheres
             GetSphereTileScale = Original.GetSphereTileScale;
             GetSphereTileTexture = Original.GetSphereTileTexture;
             GetSphereTileColor = Original.GetSphereTileColor;
-            SphereTileMesh = OverrideMesh ?? Original.SphereTileMesh;
+            SphereTileMesh = OverrideMesh != null ? OverrideMesh : Original.SphereTileMesh;
             SphereTileMaterial = Original.SphereTileMaterial;
             GetDisplayMode = Original.GetDisplayMode;
             GetCameraRange = Original.GetCameraRange;
             Initiation = Original.Initiation;
+            CustomBuffers = Original.CustomBuffers;
             TextureArray = Original.TextureArray;
+            BufferSize = Original.BufferSize;
         }
     }
 }
