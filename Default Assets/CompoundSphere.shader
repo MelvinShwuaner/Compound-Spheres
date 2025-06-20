@@ -21,10 +21,10 @@ Shader "CompoundSphere"
 
             #include "UnityCG.cginc"
 
-            StructuredBuffer<float4x4> Matrixes;
-            StructuredBuffer<float4> Colors;
-            StructuredBuffer<int> Textures;
-
+            uniform StructuredBuffer<float4x4> Matrixes;
+            uniform StructuredBuffer<float3> Colors;
+            uniform StructuredBuffer<float> Textures;
+            uint Row;
             uniform float ShouldRenderTextures;
 
             struct Input
@@ -44,27 +44,26 @@ Shader "CompoundSphere"
             Output vert(Input v, const uint instance_id : SV_InstanceID)
             {
                 Output o;
-                const float4 pos = mul(Matrixes[instance_id], v.vertex);
+                uint ID = instance_id + Row;
+                const float4 pos = mul(Matrixes[ID], v.vertex);
                 o.vertex = mul(UNITY_MATRIX_VP, pos);
-                o.instance_id = instance_id;
-                o.uv = float3(v.uv, Textures[instance_id]);
+                o.instance_id = ID;
+                o.uv = float3(v.uv, Textures[ID]);
                 return o;
             }
-            half4 GetColor(Output i){
+            half4 frag(Output i) : SV_Target
+            {
+                float4 color = float4(Colors[i.instance_id], 1);
                 if(ShouldRenderTextures == 1){
                     return UNITY_SAMPLE_TEX2DARRAY(TextureArray, i.uv);
                 }
                 if(ShouldRenderTextures == 2){
-                    return UNITY_SAMPLE_TEX2DARRAY(TextureArray, i.uv) * Colors[i.instance_id];
+                    return (UNITY_SAMPLE_TEX2DARRAY(TextureArray, i.uv) * color);
                 }
                 if(ShouldRenderTextures == 3){
-                    return UNITY_SAMPLE_TEX2DARRAY(TextureArray, i.uv) + Colors[i.instance_id];
+                    return (UNITY_SAMPLE_TEX2DARRAY(TextureArray, i.uv) + color);
                 }
-                return Colors[i.instance_id];
-            }
-            half4 frag(Output i) : SV_Target
-            {
-                return GetColor(i);
+                return color;
             }
             ENDHLSL
         }
