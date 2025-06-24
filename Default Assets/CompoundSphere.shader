@@ -22,6 +22,7 @@ Shader "CompoundSphere"
             #include "UnityCG.cginc"
 
             uniform StructuredBuffer<float4x4> Matrixes;
+            uniform StructuredBuffer<float3> Scales;
             uniform StructuredBuffer<float3> Colors;
             uniform StructuredBuffer<float> Textures;
             uint Row;
@@ -39,13 +40,13 @@ Shader "CompoundSphere"
                 float3 uv : TEXCOORD0;
                 uint instance_id : SV_InstanceID ;
             };
-
             UNITY_DECLARE_TEX2DARRAY(TextureArray);
             Output vert(Input v, const uint instance_id : SV_InstanceID)
             {
                 Output o;
                 uint ID = instance_id + Row;
-                const float4 pos = mul(Matrixes[ID], v.vertex);
+                float3 vertex = v.vertex.xyz * Scales[ID];
+                const float4 pos = mul(Matrixes[ID], float4(vertex, v.vertex.w));
                 o.vertex = mul(UNITY_MATRIX_VP, pos);
                 o.instance_id = ID;
                 o.uv = float3(v.uv, Textures[ID]);
