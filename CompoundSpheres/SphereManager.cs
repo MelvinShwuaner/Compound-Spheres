@@ -53,8 +53,8 @@ namespace CompoundSpheres
         /// <remarks>dont add custom buffers directly to this, instead use addcustombuffer, since the manager will manage the buffer for you</remarks>
         public Material Material { private set; get; }
         internal GraphicsBuffer commandBuf;
-        private GraphicsBuffer Matrixes, Colors, Textures;
-        internal HashSet<int> _matrices, _colors, _textures;
+        private GraphicsBuffer Scales, Colors, Textures, Matrixes;
+        internal HashSet<int> _scales, _colors, _textures;
         private Dictionary<string, IBuffer> CustomBuffers;
         #endregion
         #region Settings
@@ -76,8 +76,9 @@ namespace CompoundSpheres
                     buffer.Value.Dispose();
                 }
             }
-            Matrixes.Release();
+            Scales.Release();
             Colors.Release();
+            Matrixes.Release();
             Textures.Release();
             commandBuf.Release();
             SphereRows = null;
@@ -115,15 +116,17 @@ namespace CompoundSpheres
             commandData[0].indexCountPerInstance = SphereTileMesh.GetIndexCount(0);
             commandData[0].instanceCount = (uint)Cols;
             commandBuf.SetData(commandData);
-            Matrixes = new GraphicsBuffer(GraphicsBuffer.Target.Structured, GraphicsBuffer.UsageFlags.LockBufferForWrite, TotalTiles, 64);
-            Colors = new GraphicsBuffer(GraphicsBuffer.Target.Structured, GraphicsBuffer.UsageFlags.LockBufferForWrite, TotalTiles, 12);
-            Textures = new GraphicsBuffer(GraphicsBuffer.Target.Structured, GraphicsBuffer.UsageFlags.LockBufferForWrite, TotalTiles, 4);
+            Matrixes = new GraphicsBuffer(GraphicsBuffer.Target.Structured, TotalTiles, 64);
+            Colors = new GraphicsBuffer(GraphicsBuffer.Target.Structured, TotalTiles, 12);
+            Scales = new GraphicsBuffer(GraphicsBuffer.Target.Structured, TotalTiles, 12);
+            Textures = new GraphicsBuffer(GraphicsBuffer.Target.Structured, TotalTiles, 4);
             _colors = new HashSet<int>();
-            _matrices = new HashSet<int>();
+            _scales = new HashSet<int>();
             _textures = new HashSet<int>();
-            Material.SetBuffer("Colors", Colors);
-            Material.SetBuffer("Textures", Textures);
             Material.SetBuffer("Matrixes", Matrixes);
+            Material.SetBuffer("Colors", Colors);
+            Material.SetBuffer("Scales", Scales);
+            Material.SetBuffer("Textures", Textures);
 
             if(sphereManagerSettings.CustomBuffers != null)
             {
@@ -197,6 +200,7 @@ namespace CompoundSpheres
         /// <summary>
         /// the color of a spheretile
         /// </summary>
+        /// <remarks>the Alpha Component is NOT USED.</remarks>
         public Color SphereTileColor(SphereTile SphereTile)
         {
             return getSphereTileColor(SphereTile);
@@ -229,40 +233,41 @@ namespace CompoundSpheres
             return gameObject.name.ToString(formatProvider);
         }
         /// <summary>
-        /// refresh all of the matrixes, textures and colors
+        /// refresh all of the scales, textures and colors
         /// </summary>
         public void RefreshAll()
         {
-            RefreshMatrixes();
+            RefreshScales();
             RefreshColors();
             RefreshTextures();
         }
         internal void Begin()
         {
-            Matrixes.SetBuffer<Matrix4x4>(TotalTiles, (int i) => SphereTiles[i]);
-            Colors.SetBuffer<Vector3>(TotalTiles, (int i) => SphereTiles[i]);
-            Textures.SetBuffer<float>(TotalTiles, (int i) => SphereTiles[i]);
+            Matrixes.SetBuffer(TotalTiles, (int i) => SphereTiles[i].Matrix);
+            Scales.SetBuffer(TotalTiles, (int i) => SphereTiles[i].UpdateScale());
+            Colors.SetBuffer(TotalTiles, (int i) => SphereTiles[i].UpdateColor());
+            Textures.SetBuffer<float>(TotalTiles, (int i) => SphereTiles[i].UpdateTexture());
         }
         /// <summary>
         /// refresh the matrix array
         /// </summary>
-        public void RefreshMatrixes()
+        public void RefreshScales()
         {
-            Matrixes.UpdateBuffer<Matrix4x4>(_matrices, (int i) => SphereTiles[i], BufferSize);
+            Scales.UpdateBuffer(_scales, (int i) => SphereTiles[i].UpdateScale(), BufferSize);
         }
         /// <summary>
         /// refresh the color array
         /// </summary>
         public void RefreshColors()
         {
-            Colors.UpdateBuffer<Vector3>(_colors, (int i) => SphereTiles[i], BufferSize);
+            Colors.UpdateBuffer(_colors, (int i) => SphereTiles[i].UpdateColor(), BufferSize);
         }
         /// <summary>
         /// refresh the texture array
         /// </summary>
         public void RefreshTextures()
         {
-            Textures.UpdateBuffer<float>(_textures, (int i) => SphereTiles[i], BufferSize);
+            Textures.UpdateBuffer<float>(_textures, (int i) => SphereTiles[i].UpdateTexture(), BufferSize);
         }
         /// <summary>
         /// marks a tile's color to be refreshed
@@ -272,11 +277,25 @@ namespace CompoundSpheres
             _colors.Add((X*Cols) +Y);
         }
         /// <summary>
+        /// marks a tile's color to be refreshed
+        /// </summary>
+        public void UpdateColor(int I)
+        {
+            _colors.Add(I);
+        }
+        /// <summary>
         /// marks a tile's matrix to be refreshed
         /// </summary>
-        public void UpdateMatrix(int X, int Y)
+        public void UpdateScale(int X, int Y)
         {
-            _matrices.Add((X * Cols) + Y);
+            _scales.Add((X * Cols) + Y);
+        }
+        /// <summary>
+        /// marks a tile's matrix to be refreshed
+        /// </summary>
+        public void UpdateScale(int I)
+        {
+            _scales.Add(I);
         }
         /// <summary>
         /// marks a tile's texture to be refreshed
@@ -284,6 +303,13 @@ namespace CompoundSpheres
         public void UpdateTexture(int X, int Y)
         {
             _textures.Add((X * Cols) + Y);
+        }
+        /// <summary>
+        /// marks a tile's texture to be refreshed
+        /// </summary>
+        public void UpdateTexture(int I)
+        {
+            _textures.Add(I);
         }
         /// <summary>
         /// refreshes a custom buffer
@@ -297,7 +323,14 @@ namespace CompoundSpheres
         /// </summary>
         public void UpdateCustom(string Name, int X, int Y)
         {
-            CustomBuffers[Name].Update(X, Y);
+            CustomBuffers[Name].Update((X * Cols) + Y);
+        }
+        /// <summary>
+        /// marks a tile's custom property to be updated
+        /// </summary>
+        public void UpdateCustom(string Name, int I)
+        {
+            CustomBuffers[Name].Update(I);
         }
         /// <summary>
         /// adds a custom buffer to this sphererow, which is then accessed by the GPU
@@ -309,7 +342,7 @@ namespace CompoundSpheres
         /// <remarks>your compute buffer will be automatically released from memory once sphere is destroyed</remarks>
         public CustomBuffer<T> AddCustomBuffer<T>(string Name, GetCustomData<T> getcustomdata, int Size) where T : struct
         {
-            GraphicsBuffer Buffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, GraphicsBuffer.UsageFlags.LockBufferForWrite, Cols, Size);
+            GraphicsBuffer Buffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, TotalTiles, Size);
             Material.SetBuffer(Name, Buffer);
             CustomBuffer<T> buffer = new CustomBuffer<T>(this, Buffer, getcustomdata);
             CustomBuffers ??= new Dictionary<string, IBuffer>();

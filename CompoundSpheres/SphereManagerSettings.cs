@@ -49,7 +49,7 @@ namespace CompoundSpheres
         /// <inheritdoc/>
         public readonly IBuffer GetBuffer(SphereManager sphereManager)
         {
-            GraphicsBuffer Buffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, GraphicsBuffer.UsageFlags.LockBufferForWrite, sphereManager.Cols, Size);
+            GraphicsBuffer Buffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, sphereManager.TotalTiles, Size);
             sphereManager.Material.SetBuffer(Name, Buffer);
             return new CustomBuffer<T>(sphereManager, Buffer, getCustomData);
         }

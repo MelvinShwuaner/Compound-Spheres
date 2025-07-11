@@ -6,7 +6,7 @@ namespace CompoundSpheres
     /// <summary>
     /// a tile on a sphere, storing its position in 3d space, x and y coordinates on its grid, and rotation
     /// </summary>
-    public readonly struct SphereTile : IEquatable<SphereTile>, IFormattable, IComparable<SphereTile>
+    public struct SphereTile : IEquatable<SphereTile>, IFormattable, IComparable<SphereTile>
     {
         /// <summary>
         /// the X position on the grid, which is its row
@@ -27,15 +27,23 @@ namespace CompoundSpheres
         /// <summary>
         /// the scale of this tile, this is not constant and can change
         /// </summary>
-        public Vector3 Scale => Manager.SphereTileScale(this);
+        public Vector3 Scale { get; private set; }
         /// <summary>
         /// the color of this tile, represented by vector4
         /// </summary>
-        public Vector4 Color => Manager.SphereTileColor(this);
+        public Vector3 Color { get; private set; }
         /// <summary>
         /// the texture index of this sphere tile in the managers texture array
         /// </summary>
-        public int TextureIndex => Manager.SphereTileTexture(this);
+        public int TextureIndex { get; private set; }
+        /// <summary>
+        /// a Matrix4x4 representing the position, rotation of the sphere tile
+        /// </summary>
+        public Matrix4x4 Matrix => Matrix4x4.Translate(Position) * Matrix4x4.Rotate(Rotation);
+        /// <summary>
+        /// the 1D coordinates of a sphere tile
+        /// </summary>
+        public int Index => (X * Row.Cols) + Y;
         /// <summary>
         /// the Row this tile is Im
         /// </summary>
@@ -51,7 +59,34 @@ namespace CompoundSpheres
             this.Y = Y;
             Position = row.SphereManager.SphereTilePosition(X, Y);
             Rotation = Quaternion.identity;
+            Color = Vector4.one;
+            Scale = Vector3.one;
+            TextureIndex = 0;
             Rotation = row.SphereManager.GetSphereTileRotation(this);
+        }
+        /// <summary>
+        /// Updates and Returns the Color
+        /// </summary>
+        public Vector3 UpdateColor()
+        {
+            Color = (Vector4)Manager.SphereTileColor(this);
+            return Color;
+        }
+        /// <summary>
+        /// Updates and Returns the Scale
+        /// </summary>
+        public Vector3 UpdateScale()
+        {
+            Scale = Manager.SphereTileScale(this);
+            return Scale;
+        }
+        /// <summary>
+        /// Updates and Returns the texture index
+        /// </summary>
+        public int UpdateTexture()
+        {
+            TextureIndex = Manager.SphereTileTexture(this);
+            return TextureIndex;
         }
         /// <inheritdoc/>
         public override string ToString()
@@ -94,27 +129,6 @@ namespace CompoundSpheres
         public bool Equals(SphereTile other)
         {
             return CompareTo(other) == 0 && other.Manager == Manager;
-        }
-        /// <summary>
-        /// the 1D coordinates of a sphere tile
-        /// </summary>
-        public static implicit operator int(SphereTile Tile)
-        {
-            return (Tile.X * Tile.Row.Cols) + Tile.Y;
-        }
-        /// <summary>
-        /// the color of the sphere tile
-        /// </summary>
-        public static implicit operator Vector3(SphereTile Tile)
-        {
-            return Tile.Color;
-        }
-        /// <summary>
-        /// a Matrix4x4 representing the position, scale, rotation of the sphere tile
-        /// </summary>
-        public static implicit operator Matrix4x4(SphereTile tile)
-        {
-            return Matrix4x4.TRS(tile.Position, tile.Rotation, tile.Scale);
         }
         /// <summary>
         /// returns true if both coordinates are the same and are managed by the same manager

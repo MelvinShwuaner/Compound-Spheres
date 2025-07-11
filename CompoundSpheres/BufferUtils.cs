@@ -17,7 +17,7 @@ namespace CompoundSpheres
         /// <summary>
         /// marks a tile to be refreshed
         /// </summary>
-        public void Update(int x, int y);
+        public void Update(int I);
         /// <summary>
         /// refreshes the buffer
         /// </summary>
@@ -53,9 +53,9 @@ namespace CompoundSpheres
             this.Buffer = Buffer;
         }
         /// <inheritdoc/>
-        public void Update(int x, int y)
+        public void Update(int I)
         {
-            ToUpdate.Add((x * Manager.Cols) + y);
+            ToUpdate.Add(I);
         }
         /// <inheritdoc/>
         public void Dispose()
