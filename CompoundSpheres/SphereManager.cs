@@ -65,7 +65,6 @@ namespace CompoundSpheres
         GetSphereTileColor getSphereTileColor;
         GetDisplayMode getdisplaymode;
         GetCameraRange GetCameraRange;
-        internal int BufferSize;
         #endregion
         private void OnDestroy()
         {
@@ -105,7 +104,6 @@ namespace CompoundSpheres
             SphereTilePos = sphereManagerSettings.getspheretileposition;
             getdisplaymode = sphereManagerSettings.GetDisplayMode;
             GetCameraRange = sphereManagerSettings.GetCameraRange;
-            BufferSize = sphereManagerSettings.BufferSize;
             Material.SetTexture("TextureArray", sphereManagerSettings.TextureArray);
             Radius = Rows / (2 * Mathf.PI);
             SphereTiles = new SphereTile[rows * cols];
@@ -253,21 +251,21 @@ namespace CompoundSpheres
         /// </summary>
         public void RefreshScales()
         {
-            Scales.UpdateBuffer(_scales, (int i) => SphereTiles[i].UpdateScale(), BufferSize);
+            Scales.UpdateBuffer(_scales, (int i) => SphereTiles[i].UpdateScale());
         }
         /// <summary>
         /// refresh the color array
         /// </summary>
         public void RefreshColors()
         {
-            Colors.UpdateBuffer(_colors, (int i) => SphereTiles[i].UpdateColor(), BufferSize);
+            Colors.UpdateBuffer(_colors, (int i) => SphereTiles[i].UpdateColor());
         }
         /// <summary>
         /// refresh the texture array
         /// </summary>
         public void RefreshTextures()
         {
-            Textures.UpdateBuffer<float>(_textures, (int i) => SphereTiles[i].UpdateTexture(), BufferSize);
+            Textures.UpdateBuffer<float>(_textures, (int i) => SphereTiles[i].UpdateTexture());
         }
         /// <summary>
         /// marks a tile's color to be refreshed

@@ -168,10 +168,6 @@ namespace CompoundSpheres
         /// </summary>
         public List<IBufferData> CustomBuffers;
         /// <summary>
-        /// the max distance between two tiles on the sphere to be included in the same batch to be sent to the gpu, if there are tiles in between, they will also be sent to the gpu and their data is recalculated!
-        /// </summary>
-        public int BufferSize;
-        /// <summary>
         /// called once the manager is created
         /// </summary>
         public Initiation Initiation;
@@ -193,7 +189,7 @@ namespace CompoundSpheres
         /// <param name="getCameraRange">gets the range of rows that are displayede around the cameraparam</param>
         /// <param name="custombuffers">a list of custom buffers this manager's shader has (Optional)</param>
         /// <remarks>the Material MUST have the compound sphere shader or another shader with same functionality</remarks>
-        public SphereManagerSettings(Initiation Initiation, GetSphereTilePosition getSphereTilePosition, GetSphereTileRotation getSphereTileRotation, GetSphereTileScale getSphereTileScale, GetSphereTileColor getSphereTileColor, GetSphereTileTexture getSphereTileTexture, GetDisplayMode getdisplaymode, Texture2D[] Textures, TextureFormat Format, Mesh mesh, Material material, GetCameraRange getCameraRange, List<IBufferData> custombuffers = null, int BufferSize = 1)
+        public SphereManagerSettings(Initiation Initiation, GetSphereTilePosition getSphereTilePosition, GetSphereTileRotation getSphereTileRotation, GetSphereTileScale getSphereTileScale, GetSphereTileColor getSphereTileColor, GetSphereTileTexture getSphereTileTexture, GetDisplayMode getdisplaymode, Texture2D[] Textures, TextureFormat Format, Mesh mesh, Material material, GetCameraRange getCameraRange, List<IBufferData> custombuffers = null)
         {
             getspheretileposition = getSphereTilePosition;
             GetSphereTileRotation = getSphereTileRotation;
@@ -214,7 +210,6 @@ namespace CompoundSpheres
             }
             TextureArray.Apply();
             CustomBuffers = custombuffers;
-            this.BufferSize = BufferSize;
         }
         /// <summary>
         /// Settings for a sphere manager
@@ -233,7 +228,7 @@ namespace CompoundSpheres
         /// <param name="custombuffers">a list of custom buffers this manager's shader has (Optional)</param>
         /// <param name="getCameraRange">gets the range of rows that are displayede around the cameraparam</param>
         /// <remarks>the Material MUST have the compound sphere shader or another shader with same functionality</remarks>
-        public SphereManagerSettings(Initiation Initiation, GetSphereTilePosition getSphereTilePosition, GetSphereTileRotation getSphereTileRotation, GetSphereTileScale getSphereTileScale, GetSphereTileColor getSphereTileColor, GetSphereTileTexture getSphereTileTexture, GetDisplayMode getdisplaymode, Texture2DArray Textures, Mesh mesh, Material material, GetCameraRange getCameraRange, List<IBufferData> custombuffers = null, int BufferSize = 1)
+        public SphereManagerSettings(Initiation Initiation, GetSphereTilePosition getSphereTilePosition, GetSphereTileRotation getSphereTileRotation, GetSphereTileScale getSphereTileScale, GetSphereTileColor getSphereTileColor, GetSphereTileTexture getSphereTileTexture, GetDisplayMode getdisplaymode, Texture2DArray Textures, Mesh mesh, Material material, GetCameraRange getCameraRange, List<IBufferData> custombuffers = null)
         {
             getspheretileposition = getSphereTilePosition;
             GetSphereTileRotation = getSphereTileRotation;
@@ -247,7 +242,6 @@ namespace CompoundSpheres
             this.Initiation = Initiation;
             TextureArray = Textures;
             CustomBuffers = custombuffers;
-            this.BufferSize= BufferSize;
         }
         /// <summary>
         /// copies settings from another setting, allows you to also add a new mesh since that is the most commonly modified setting
@@ -266,7 +260,6 @@ namespace CompoundSpheres
             Initiation = Original.Initiation;
             CustomBuffers = Original.CustomBuffers;
             TextureArray = Original.TextureArray;
-            BufferSize = Original.BufferSize;
         }
     }
 }

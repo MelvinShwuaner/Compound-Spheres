@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using UnityEngine;
 
 namespace CompoundSpheres
@@ -43,7 +44,7 @@ namespace CompoundSpheres
         /// </summary>
         public void Refresh()
         {
-            Buffer.UpdateBuffer(ToUpdate, (int i) => getCustomData(Manager.SphereTiles[i]), Manager.BufferSize);
+            Buffer.UpdateBuffer(ToUpdate, (int i) => getCustomData(Manager.SphereTiles[i]));
         }
         internal CustomBuffer(SphereManager Manager, GraphicsBuffer Buffer, GetCustomData<T> getdata)
         {
@@ -84,38 +85,42 @@ namespace CompoundSpheres
         /// <summary>
         /// Updates a buffer
         /// </summary>
-        public static void UpdateBuffer<T>(this GraphicsBuffer buffer, HashSet<int> ToUpdate, Func<int, T> Function, int MaxDist = 1) where T : struct
+        public static void UpdateBuffer<T>(this GraphicsBuffer buffer, HashSet<int> ToUpdate, Func<int, T> Function) where T : struct
         {
             if (ToUpdate == null || ToUpdate.Count == 0) return;
-            var sorted = ToUpdate.OrderBy(kvp => kvp).ToList();
-            List<T> currentGroup = new List<T>();
+
+            var sorted = UnityEngine.Pool.ListPool<int>.Get();
+            sorted.AddRange(ToUpdate);
+            sorted.Sort();
+
+            T[] Array = new T[ToUpdate.Count];
+            Parallel.For(0, ToUpdate.Count, (int i) => Array[i] = Function(sorted[i]) );
+            int BufferSize = 1;
+            int ArrayStart = 0;
             int startIndex = sorted[0];
             int lastIndex = startIndex;
-            currentGroup.Add(Function(sorted[0]));
             for (int i = 1; i < sorted.Count; i++)
             {
                 int index = sorted[i];
-                if (index-lastIndex <= MaxDist)
+                if (index-lastIndex == 1)
                 {
-                    for (int j = lastIndex + 1; j <= index; j++)
-                    {
-                        currentGroup.Add(Function(j));
-                    }
+                    BufferSize++;
                 }
                 else
                 {
-                    buffer.SetData(currentGroup.ToArray(), 0, startIndex, currentGroup.Count);
-                    currentGroup.Clear();
-                    currentGroup.Add(Function(sorted[i]));
+                    buffer.SetData(Array, ArrayStart, startIndex, BufferSize);
                     startIndex = index;
+                    ArrayStart = i;
+                    BufferSize = 1;
                 }
                 lastIndex = index;
             }
-            if (currentGroup.Count > 0)
+            if (BufferSize > 0)
             {
-                buffer.SetData(currentGroup.ToArray(), 0, startIndex, currentGroup.Count);
+                buffer.SetData(Array, ArrayStart, startIndex, BufferSize);
             }
             ToUpdate.Clear();
+            UnityEngine.Pool.ListPool<int>.Release(sorted);
         }
     }
 }
