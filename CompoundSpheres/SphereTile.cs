@@ -31,7 +31,7 @@ namespace CompoundSpheres
         /// <summary>
         /// the color of this tile, represented by vector4
         /// </summary>
-        public Vector3 Color { get; private set; }
+        public Color32 Color { get; private set; }
         /// <summary>
         /// the texture index of this sphere tile in the managers texture array
         /// </summary>
@@ -59,7 +59,7 @@ namespace CompoundSpheres
             this.Y = Y;
             Position = row.SphereManager.SphereTilePosition(X, Y);
             Rotation = Quaternion.identity;
-            Color = Vector4.one;
+            Color = default;
             Scale = Vector3.one;
             TextureIndex = 0;
             Rotation = row.SphereManager.GetSphereTileRotation(this);
@@ -67,9 +67,9 @@ namespace CompoundSpheres
         /// <summary>
         /// Updates and Returns the Color
         /// </summary>
-        public Vector3 UpdateColor()
+        public Color32 UpdateColor()
         {
-            Color = (Vector4)Manager.SphereTileColor(this);
+            Color = Manager.SphereTileColor(this);
             return Color;
         }
         /// <summary>

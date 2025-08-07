@@ -56,7 +56,7 @@ namespace CompoundSpheres
         /// <summary>
         /// default tile color is white
         /// </summary>
-        public static Color DefaultColor(SphereTile Tile)
+        public static Color32 DefaultColor(SphereTile Tile)
         {
             return Color.white;
         }

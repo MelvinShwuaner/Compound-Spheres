@@ -104,7 +104,7 @@ namespace CompoundSpheres
     /// <summary>
     /// the color of a spheretile
     /// </summary>
-    public delegate Color GetSphereTileColor(SphereTile sphereTile);
+    public delegate Color32 GetSphereTileColor(SphereTile sphereTile);
     /// <summary>
     /// if true, textures will be displayed on all tiles, if false only colors will be displayed
     /// </summary>

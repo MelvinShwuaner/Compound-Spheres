@@ -117,7 +117,7 @@ namespace CompoundSpheres
             commandData[0].instanceCount = (uint)Cols;
             commandBuf.SetData(commandData);
             Matrixes = new GraphicsBuffer(GraphicsBuffer.Target.Structured, TotalTiles, 64);
-            Colors = new GraphicsBuffer(GraphicsBuffer.Target.Structured, TotalTiles, 12);
+            Colors = new GraphicsBuffer(GraphicsBuffer.Target.Structured, TotalTiles, 4);
             Scales = new GraphicsBuffer(GraphicsBuffer.Target.Structured, TotalTiles, 12);
             Textures = new GraphicsBuffer(GraphicsBuffer.Target.Structured, TotalTiles, 4);
             _colors = new HashSet<int>();
@@ -201,7 +201,7 @@ namespace CompoundSpheres
         /// the color of a spheretile
         /// </summary>
         /// <remarks>the Alpha Component is NOT USED.</remarks>
-        public Color SphereTileColor(SphereTile SphereTile)
+        public Color32 SphereTileColor(SphereTile SphereTile)
         {
             return getSphereTileColor(SphereTile);
         }
