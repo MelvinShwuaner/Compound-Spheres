@@ -33,7 +33,8 @@ here is an example of how to create a sphere manager
         DefaultSettings.DefaultFormat,
         DefaultSettings.DefaultMesh,
         CompoundSphereMaterial,
-        DefaultSettings.DefaultRange
+        DefaultSettings.DefaultRange,
+        new List<IBufferData>() { new CustomBufferData<Vector3>("AddedColors", 12, SphereTileAddedColor) }
     );
     
     SphereManager Manager = SphereManager.Creator.CreateSphereManager(Rows, Cols, settings, "My New Sphere Manager");
@@ -59,22 +60,30 @@ or you could just call DrawAllTiles...
 ## Adding custom buffers
 if you have a custom shader that also lets you make the tiles glow, and you want to store the amount of glow each tile gives off, this is how!
 
-    foreach(SphereRow row in Manager)
-    {
-        //the size is 4 since the glow is just one float, which take up 4 bytes
-        ComputeBuffer buffer = row.AddCustomBuffer("Glow", 4);
-        float[] GlowData = new float[Cols];
-        for (int i = 0; i < GlowData.Length; i++)
+    SphereManagerSettings settings = new SphereManagerSettings(
+        DefaultSettings.CylindricalInitiation,
+        DefaultSettings.CartesianToCylindrical,
+        DefaultSettings.CylindricalRotation,
+        DefaultSettings.DefaultScale,
+        DefaultSettings.DefaultColor,
+        DefaultSettings.DefaultTextureIndex,
+        DefaultSettings.DefaultMode,
+        new Texture2D[]
         {
-            GlowData[i] = UnityEngine.Random.Range(0.0f, 1.0f);
-        }
-        buffer.SetData(GlowData);
-    }
+            DefaultSettings.DefaultTexture
+        },
+        DefaultSettings.DefaultFormat,
+        DefaultSettings.DefaultMesh,
+        CompoundSphereMaterial,
+        DefaultSettings.DefaultRange,
+        new List<IBufferData>() { new CustomBufferData<Vector3>("AddedColors", 12, SphereTileAddedColor) }
+    );
 normally you have to manually release buffer memory, but here you dont! the manager will automatically release it once you destroy the manager.
-the add custom buffer requires you to provide how much bytes one variable requires, remember that floats take 4 bytes, so if you are storing vector3's then you need 12 bytes cuz it has 3 floats.
+the ibufferdata requires you to provide how much bytes one variable requires, remember that floats take 4 bytes, so if you are storing vector3's then you need 12 bytes cuz it has 3 floats.
+the last paramater is the function that returns the buffers type for any spheretile. use manager.updatecustom and manager.refreshcustom to update the custom buffer
 
 ## Sphere tiles
-sphere tiles are readonly, you cannot change their position and rotation once created, but their scales, texture and color are provided by a function and are not stored in memory, so every time they are accessed the function is called. this because if you move it / rotate it a gap can form in the sphere!
+sphere tiles are readonly, you cannot change their position and rotation once created, but their scales, texture and color are provided by a function, so every time they are updated the function is called. this because if you move it / rotate it a gap can form in the sphere!
 
     foreach(SphereRow row in Manager)
     {
