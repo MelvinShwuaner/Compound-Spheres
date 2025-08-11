@@ -92,7 +92,7 @@ namespace CompoundSpheres
     /// <summary>
     /// the rotation of any spheretile, position is made then the rotation is made
     /// </summary>
-    public delegate Quaternion GetSphereTileRotation(SphereTile SphereTile);
+    public delegate Quaternion GetSphereTileRotation(SphereManager Manager, float x, float y);
     /// <summary>
     /// the scale of a spheretile, called everytime its Row updates it
     /// </summary>
