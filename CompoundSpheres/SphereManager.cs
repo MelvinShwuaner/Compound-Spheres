@@ -186,7 +186,7 @@ namespace CompoundSpheres
         /// </summary>
         public Quaternion GetSphereTileRotation(SphereTile SphereTile)
         {
-            return getSphereTileRotation(this, SphereTile.X, SphereTile.Y);
+            return getSphereTileRotation(SphereTile);
         }
         /// <summary>
         /// the scale of a spheretile
