@@ -60,6 +60,7 @@ or you could just call DrawAllTiles...
 ## Adding custom buffers
 if you have a custom shader that also lets you make the tiles glow, and you want to store the amount of glow each tile gives off, this is how!
 
+    float GetGlow(SphereTile Tile){.......}
     SphereManagerSettings settings = new SphereManagerSettings(
         DefaultSettings.CylindricalInitiation,
         DefaultSettings.CartesianToCylindrical,
@@ -76,7 +77,7 @@ if you have a custom shader that also lets you make the tiles glow, and you want
         DefaultSettings.DefaultMesh,
         CompoundSphereMaterial,
         DefaultSettings.DefaultRange,
-        new List<IBufferData>() { new CustomBufferData<Vector3>("AddedColors", 12, SphereTileAddedColor) }
+        new List<IBufferData>() { new CustomBufferData<float>("TileGlows", 4, GetGlow) }
     );
 normally you have to manually release buffer memory, but here you dont! the manager will automatically release it once you destroy the manager.
 the ibufferdata requires you to provide how much bytes one variable requires, remember that floats take 4 bytes, so if you are storing vector3's then you need 12 bytes cuz it has 3 floats.
