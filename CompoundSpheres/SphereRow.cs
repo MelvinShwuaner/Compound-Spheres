@@ -38,7 +38,7 @@ namespace CompoundSpheres
             this.Row = Row;
             _rp = new RenderParams(manager.Material)
             {
-                worldBounds = new Bounds(Vector3.zero, Vector3.one * 1000),
+                worldBounds = new Bounds(Vector3.zero, Vector3.one * 10000),
                 matProps = new MaterialPropertyBlock()
             };
             Properties.SetInteger("Row", Row * Cols);
