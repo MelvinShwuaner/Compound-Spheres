@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Runtime.InteropServices;
 using UnityEngine;
 
 namespace CompoundSpheres
@@ -9,7 +10,7 @@ namespace CompoundSpheres
     /// <summary>
     /// The Manager For Your Compound Sphere
     /// </summary>
-    public class SphereManager : MonoBehaviour, IEnumerable, IFormattable
+    public class SphereManager : MonoBehaviour, IEnumerable
     {
         /// <summary>
         /// a spheretile at x and y coordinates
@@ -219,17 +220,6 @@ namespace CompoundSpheres
         {
             return SphereRows.GetEnumerator();
         }
-        /// <inheritdoc/>
-        public override string ToString()
-        {
-            return ToString(null, null);
-        }
-        /// <inheritdoc/>
-        public string ToString(string format, IFormatProvider formatProvider)
-        {
-            formatProvider ??= CultureInfo.InvariantCulture.NumberFormat;
-            return gameObject.name.ToString(formatProvider);
-        }
         /// <summary>
         /// refresh all of the scales, textures and colors
         /// </summary>
@@ -335,17 +325,12 @@ namespace CompoundSpheres
         /// </summary>
         /// <param name="Name">the name of the buffer in the custom shader, must be unique</param>
         /// <param name="getcustomdata">a function that returns a struct to be stored in the buffer</param>
-        /// <param name="Size">the size of each variable in the buffer, in bytes. for example if you are storing floats it will be 4 because floats take up 4 bytes</param>
         /// <returns>a compute buffer, to update it call buffer.update and buffer.refresh</returns>
         /// <remarks>your compute buffer will be automatically released from memory once sphere is destroyed</remarks>
-        public CustomBuffer<T> AddCustomBuffer<T>(string Name, GetCustomData<T> getcustomdata, int Size) where T : struct
+        public CustomBuffer<T> AddCustomBuffer<T>(string Name, GetCustomData<T> getcustomdata) where T : struct
         {
-            GraphicsBuffer Buffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, TotalTiles, Size);
-            Material.SetBuffer(Name, Buffer);
-            CustomBuffer<T> buffer = new CustomBuffer<T>(this, Buffer, getcustomdata);
-            CustomBuffers ??= new Dictionary<string, IBuffer>();
-            CustomBuffers.Add(Name, buffer);
-            return buffer;
+            CustomBufferData<T> data = new CustomBufferData<T>(Name, getcustomdata);
+            return (CustomBuffer<T>)AddCustomBuffer(data);
         }
         /// <summary>
         /// a non-generic method of adding a custom buffer

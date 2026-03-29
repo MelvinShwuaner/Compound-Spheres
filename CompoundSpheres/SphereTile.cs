@@ -6,7 +6,7 @@ namespace CompoundSpheres
     /// <summary>
     /// a tile on a sphere, storing its position in 3d space, x and y coordinates on its grid, and rotation
     /// </summary>
-    public struct SphereTile : IEquatable<SphereTile>, IFormattable, IComparable<SphereTile>
+    public struct SphereTile
     {
         /// <summary>
         /// the X position on the grid, which is its row
@@ -87,81 +87,6 @@ namespace CompoundSpheres
         {
             TextureIndex = Manager.SphereTileTexture(this);
             return TextureIndex;
-        }
-        /// <inheritdoc/>
-        public override string ToString()
-        {
-            return ToString(null, null);
-        }
-        /// <summary>
-        /// returns a string representing this sphere tile
-        /// </summary>
-        public string ToString(string format, IFormatProvider formatProvider)
-        {
-            formatProvider ??= CultureInfo.InvariantCulture.NumberFormat;
-            format ??= "F5";
-            return $"Tile {X.ToString(format, formatProvider)}, {Y.ToString(format, formatProvider)} Managed By {Row}";
-        }
-        /// <summary>
-        /// if the X coordinates are different, compares them and returns the result, otherwise it compares the Y coordinates and returns the result
-        /// </summary>
-        public int CompareTo(SphereTile other)
-        {
-            if (X != other.X)
-            {
-                return X.CompareTo(other.X);
-            }
-            return Y.CompareTo(other.Y);
-        }
-        /// <inheritdoc/>
-        public override bool Equals(object obj)
-        {
-            return Equals((SphereTile)obj);
-        }
-        /// <inheritdoc/>
-        public override int GetHashCode()
-        {
-            return base.GetHashCode();
-        }
-        /// <summary>
-        /// returns true if both coordinates are the same and are managed by the same manager
-        /// </summary>
-        public bool Equals(SphereTile other)
-        {
-            return CompareTo(other) == 0 && other.Manager == Manager;
-        }
-        /// <summary>
-        /// returns true if both coordinates are the same and are managed by the same manager
-        /// </summary>
-        public static bool operator ==(SphereTile Tile, SphereTile Tile2){
-            return Tile.Equals(Tile2);
-        }
-        /// <summary>
-        /// returns true if both coordinates are different or are managed by different managers
-        /// </summary>
-        public static bool operator !=(SphereTile Tile, SphereTile Tile2)
-        {
-            return !Tile.Equals(Tile2);
-        }
-        /// <inheritdoc/>
-        public static bool operator >(SphereTile Tile, SphereTile Tile2)
-        {
-            return Tile.CompareTo(Tile2) > 0;
-        }
-        /// <inheritdoc/>
-        public static bool operator <(SphereTile Tile, SphereTile Tile2)
-        {
-            return Tile.CompareTo(Tile2) < 0;
-        }
-        /// <inheritdoc/>
-        public static bool operator >=(SphereTile Tile, SphereTile Tile2)
-        {
-            return Tile.CompareTo(Tile) >= 0;
-        }
-        /// <inheritdoc/>
-        public static bool operator <=(SphereTile Tile, SphereTile Tile2)
-        {
-            return Tile.CompareTo(Tile2) <= 0;
         }
     }
 }

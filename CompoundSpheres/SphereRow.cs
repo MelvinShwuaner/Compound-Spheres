@@ -7,7 +7,7 @@ namespace CompoundSpheres
     /// <summary>
     /// sphere rows control the displaying of tiles
     /// </summary>
-    public class SphereRow : IEnumerable, IEquatable<SphereRow>, IComparable<SphereRow>, IFormattable
+    public class SphereRow : IEnumerable
     {
         /// <summary>
         /// the manager of this row
@@ -56,86 +56,6 @@ namespace CompoundSpheres
         public void DrawTiles()
         {
             Graphics.RenderMeshIndirect(_rp, SphereManager.SphereTileMesh, SphereManager.commandBuf, 1);
-        }
-        /// <summary>
-        /// returns true if both rows are managed by the same manager and are at the same X cord
-        /// </summary>
-        public bool Equals(SphereRow other)
-        {
-            return CompareTo(other) == 0 && other.SphereManager == SphereManager;
-        }
-        /// <inheritdoc/>
-        public override bool Equals(object obj)
-        {
-            return Equals((SphereRow)obj);
-        }
-        /// <inheritdoc/>
-        public override int GetHashCode()
-        {
-            return base.GetHashCode();
-        }
-        /// <summary>
-        /// returns 1 if the X cord is bigger then the other, 0 if both are the same and -1 if other's x cord is bigger
-        /// </summary>
-        public int CompareTo(SphereRow other)
-        {
-            return Row.CompareTo(other.Row);
-        }
-        /// <inheritdoc/>
-        public override string ToString()
-        {
-            return ToString(null, null);
-        }
-        /// <summary>
-        /// creates a string that represents this row
-        /// </summary>
-        public string ToString(string format, IFormatProvider formatProvider)
-        {
-            formatProvider ??= CultureInfo.InvariantCulture.NumberFormat;
-            format ??= "F5";
-            return $"Row {Row.ToString(format, formatProvider)} managed by {SphereManager}";
-        }
-        /// <summary>
-        /// returns true if both rows are managed by the same manager and are at the same X cord
-        /// </summary>
-        public static bool operator ==(SphereRow Tile, SphereRow Tile2)
-        {
-            return Tile.Equals(Tile2);
-        }
-        /// <summary>
-        /// returns true if both rows are not managed by the same manager or are at different X cords
-        /// </summary>
-        public static bool operator !=(SphereRow Tile, SphereRow Tile2)
-        {
-            return !Tile.Equals(Tile2);
-        }
-        /// <summary>
-        /// returns true if the x cord is bigger
-        /// </summary>
-        public static bool operator >(SphereRow Tile, SphereRow Tile2)
-        {
-            return Tile.CompareTo(Tile2) > 0;
-        }
-        /// <summary>
-        /// returns true if the x cord is smaller
-        /// </summary>
-        public static bool operator <(SphereRow Tile, SphereRow Tile2)
-        {
-            return Tile.CompareTo(Tile2) < 0;
-        }
-        /// <summary>
-        /// returns true if the x cord is equal or bigger
-        /// </summary>
-        public static bool operator >=(SphereRow Tile, SphereRow Tile2)
-        {
-            return Tile.CompareTo(Tile) >= 0;
-        }
-        /// <summary>
-        /// returns true if the x cord is equal or smaller
-        /// </summary>
-        public static bool operator <=(SphereRow Tile, SphereRow Tile2)
-        {
-            return Tile.CompareTo(Tile2) <= 0;
         }
         private RenderParams _rp;
     }

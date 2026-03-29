@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using UnityEngine;
 
 namespace CompoundSpheres
@@ -20,41 +21,40 @@ namespace CompoundSpheres
     /// <summary>
     /// a custom buffer configuration, which tells the sphere manager to add a new compute buffer
     /// </summary>
-    public struct CustomBufferData<T> : IBufferData where T : struct
+    public readonly struct CustomBufferData<T> : IBufferData where T : struct
     {
         /// <summary>
         /// a function that returns your custom data for each sphere tile
         /// </summary>
-        public GetCustomData<T> getCustomData;
+        public readonly GetCustomData<T> getCustomData;
         /// <summary>
         /// the name of this buffer, in your custom shader
         /// </summary>
-        public string Name;
+        public readonly string Name;
         /// <summary>
         /// the size of the data being stored, in bytes
         /// </summary>
-        public int Size;
+        public readonly int Size;
         /// <summary>
         /// a custom buffer configuration, which tells the sphere manager to add a new compute buffer
         /// </summary>
         /// <param name="Name">the name of this buffer, in your custom shader</param>
-        /// <param name="Size">the size of the data being stored, in bytes</param>
         /// <param name="getCustomData">a function that returns your custom data for each sphere tile</param>
-        public CustomBufferData(string Name, int Size, GetCustomData<T> getCustomData)
+        public CustomBufferData(string Name, GetCustomData<T> getCustomData)
         {
             this.Name = Name;
-            this.Size = Size;
+            Size = Marshal.SizeOf<T>();
             this.getCustomData = getCustomData;
         }
         /// <inheritdoc/>
-        public readonly IBuffer GetBuffer(SphereManager sphereManager)
+        public IBuffer GetBuffer(SphereManager sphereManager)
         {
             GraphicsBuffer Buffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, sphereManager.TotalTiles, Size);
             sphereManager.Material.SetBuffer(Name, Buffer);
             return new CustomBuffer<T>(sphereManager, Buffer, getCustomData);
         }
         /// <inheritdoc/>
-        public readonly string GetName()
+        public string GetName()
         {
             return Name;
         }

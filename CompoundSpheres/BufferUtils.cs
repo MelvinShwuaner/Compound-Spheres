@@ -7,14 +7,10 @@ using UnityEngine;
 namespace CompoundSpheres
 {
     /// <summary>
-    /// a interface meant so the manager can control custom buffers of different types
+    /// An interface meant so the manager can control custom buffers of different types
     /// </summary>
-    public interface IBuffer
+    public interface IBuffer : IDisposable
     {
-        /// <summary>
-        /// disposes the custom buffer
-        /// </summary>
-        public void Dispose();
         /// <summary>
         /// marks a tile to be refreshed
         /// </summary>
@@ -76,10 +72,10 @@ namespace CompoundSpheres
         public static void SetBuffer<T>(this GraphicsBuffer Buffer, int Count, Func<int, T> function) where T : struct
         {
             T[] Array = new T[Count];
-            for (int i = 0; i < Count; i++)
+            Parallel.For(0, Count, (int i) =>
             {
                 Array[i] = function(i);
-            }
+            });
             Buffer.SetData(Array);
         }
         /// <summary>
