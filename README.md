@@ -77,10 +77,9 @@ if you have a custom shader that also lets you make the tiles glow, and you want
         DefaultSettings.DefaultMesh,
         CompoundSphereMaterial,
         DefaultSettings.DefaultRange,
-        new List<IBufferData>() { new CustomBufferData<float>("TileGlows", 4, GetGlow) }
+        new List<IBufferData>() { new CustomBufferData<float>("TileGlows", GetGlow) }
     );
 normally you have to manually release buffer memory, but here you dont! the manager will automatically release it once you destroy the manager.
-the ibufferdata requires you to provide how much bytes one variable requires, remember that floats take 4 bytes, so if you are storing vector3's then you need 12 bytes cuz it has 3 floats.
 the last paramater is the function that returns the buffers type for any spheretile. use manager.updatecustom and manager.refreshcustom to update the custom buffer
 
 ## Sphere tiles
