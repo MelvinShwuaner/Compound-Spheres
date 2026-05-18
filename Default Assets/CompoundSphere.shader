@@ -2,6 +2,7 @@ Shader "CompoundSphere"
 {
     Properties{
         TextureArray("TextureArray", 2DArray) = "" {}
+        _Color("Color", Color) = (1,1,1,1)
     }
     SubShader
     {
@@ -23,8 +24,9 @@ Shader "CompoundSphere"
 
             uniform StructuredBuffer<float4x4> Matrixes;
             uniform StructuredBuffer<float3> Scales;
-            uniform StructuredBuffer<float3> Colors;
+            uniform StructuredBuffer<uint> Colors;
             uniform StructuredBuffer<float> Textures;
+            uniform float4 _Color;
             uint Row;
             uniform float ShouldRenderTextures;
 
@@ -52,19 +54,40 @@ Shader "CompoundSphere"
                 o.uv = float3(v.uv, Textures[ID]);
                 return o;
             }
+            
+            float3 GetColor(uint instanceID)
+            {
+                uint packed = Colors[instanceID];
+                float r = (packed & 0xFF) / 255.0;
+                float g = ((packed >> 8) & 0xFF) / 255.0;
+                float b = ((packed >> 16) & 0xFF) / 255.0;
+
+                return float3(r, g, b);
+            }
             half4 frag(Output i) : SV_Target
             {
-                float4 color = float4(Colors[i.instance_id], 1);
-                if(ShouldRenderTextures == 1){
-                    return UNITY_SAMPLE_TEX2DARRAY(TextureArray, i.uv);
+                float4 color = float4(GetColor(i.instance_id), 1);
+
+                float4 finalColor;
+
+                if(ShouldRenderTextures == 1)
+                {
+                    finalColor = UNITY_SAMPLE_TEX2DARRAY(TextureArray, i.uv);
                 }
-                if(ShouldRenderTextures == 2){
-                    return (UNITY_SAMPLE_TEX2DARRAY(TextureArray, i.uv) * color);
+                else if(ShouldRenderTextures == 2)
+                {
+                    finalColor = UNITY_SAMPLE_TEX2DARRAY(TextureArray, i.uv) * color;
                 }
-                if(ShouldRenderTextures == 3){
-                    return (UNITY_SAMPLE_TEX2DARRAY(TextureArray, i.uv) + color);
+                else if(ShouldRenderTextures == 3)
+                {
+                    finalColor = UNITY_SAMPLE_TEX2DARRAY(TextureArray, i.uv) + color;
                 }
-                return color;
+                else
+                {
+                    finalColor = color;
+                }
+
+                return finalColor * _Color;
             }
             ENDHLSL
         }
