@@ -59,6 +59,11 @@ namespace CompoundSpheres
             return Name;
         }
     }
+    public struct Range
+    {
+        public int Min;
+        public int Max;
+    }
     /// <summary>
     /// the mode which indicates how tiles are displayed
     /// </summary>
@@ -112,7 +117,7 @@ namespace CompoundSpheres
     /// <summary>
     /// the Range of Rows around the camera that draw their tiles
     /// </summary>
-    public delegate void GetCameraRange(SphereManager SphereManager, out int Min, out int Max);
+    public delegate void GetCameraRange(SphereManager SphereManager, out Range Rows, out Range Cols);
     /// <summary>
     /// called once the manager is created
     /// </summary>

@@ -111,10 +111,10 @@ namespace CompoundSpheres
             SphereRows = new SphereRow[rows];
 
             commandBuf = new GraphicsBuffer(GraphicsBuffer.Target.IndirectArguments, 1, GraphicsBuffer.IndirectDrawIndexedArgs.size);
-            GraphicsBuffer.IndirectDrawIndexedArgs[] commandData = new GraphicsBuffer.IndirectDrawIndexedArgs[1];
             commandData[0].indexCountPerInstance = SphereTileMesh.GetIndexCount(0);
             commandData[0].instanceCount = (uint)Cols;
             commandBuf.SetData(commandData);
+
             Matrixes = new GraphicsBuffer(GraphicsBuffer.Target.Structured, TotalTiles, 64);
             Colors = new GraphicsBuffer(GraphicsBuffer.Target.Structured, TotalTiles, 4);
             Scales = new GraphicsBuffer(GraphicsBuffer.Target.Structured, TotalTiles, 12);
@@ -136,29 +136,48 @@ namespace CompoundSpheres
             }
             return this;
         }
+        /// <summary>
+        /// Sets the Mesh and updates the Sphere
+        /// </summary>
+        public void SetMesh(Mesh mesh)
+        {
+            SphereTileMesh = mesh;
+            commandData[0].indexCountPerInstance = SphereTileMesh.GetIndexCount(0);
+            commandBuf.SetData(commandData);
+        }
+        readonly GraphicsBuffer.IndirectDrawIndexedArgs[] commandData = new GraphicsBuffer.IndirectDrawIndexedArgs[1];
+        void SetRenderAmount(uint Amount)
+        {
+            commandData[0].instanceCount = Amount;
+            commandBuf.SetData(commandData);
+        }
         private SphereManager() { }
         /// <summary>
         /// clamps a position + change to the X Axis
         /// </summary>
         public float Clamp(float Pos, float Change)
         {
-            int Max = Rows;
             Pos += Change;
             if (Pos < 0)
             {
-                return Max + Pos;
+                return Rows + Pos;
             }
-            return Pos % Max;
+            return Pos % Rows;
         }
+        
         /// <summary>
         /// all rows that are in the camera range draw their tiles
         /// </summary>
         /// <remarks>the camera x and y positions are the camera's position on the 2d grid, NOT its actual coordinates</remarks>
-        public void DrawTiles(int CameraX)
+        public void DrawTiles(int CameraX, int CameraY)
         {
-            GetCameraRange(this, out int Min, out int Max);
-            Material.SetFloat("ShouldRenderTextures", (int)getdisplaymode(this));
-            for (int i = Min; i < Max; i++)
+            GetCameraRange(this, out Range Row, out Range Col);
+            Material.SetInteger("ShouldRenderTextures", (int)getdisplaymode(this));
+            uint MaxCol = (uint)Mathf.Clamp(Col.Max + CameraY, 0, Cols);
+            uint MinCol = (uint)Mathf.Clamp(CameraY - Col.Min, 0, Cols);
+            SetRenderAmount(MaxCol - MinCol);
+            Material.SetInteger("Col", (int)MinCol);
+            for (int i = Row.Min; i < Row.Max; i++)
             {
                 int I = (int)Clamp(CameraX, i);
                 SphereRows[I].DrawTiles();
