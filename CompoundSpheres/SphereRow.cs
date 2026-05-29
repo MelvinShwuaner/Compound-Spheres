@@ -12,17 +12,17 @@ namespace CompoundSpheres
         /// <summary>
         /// the manager of this row
         /// </summary>
-        public readonly SphereManager SphereManager;
+        public readonly SphereManager Manager;
         /// <summary>
         /// get a sphere tile at this row and column i
         /// </summary>
         /// <param name="i"></param>
         /// <returns></returns>
-        public SphereTile this[int i] => SphereManager[Row, i];
+        public SphereTile this[int i] => Manager[Row, i];
         /// <summary>
         /// the number of tiles in this row
         /// </summary>
-        public int Cols => SphereManager.Cols;
+        public int Cols => Manager.Cols;
         /// <summary>
         /// the X coordinate of this row
         /// </summary>
@@ -32,9 +32,10 @@ namespace CompoundSpheres
         /// </summary>
         /// <remarks>dont add custom buffers directly to this, instead use Manager.addcustombuffer, since the manager will manage the buffer for you </remarks>
         public MaterialPropertyBlock Properties => _rp.matProps;
+
         internal SphereRow(SphereManager manager, int Row)
         {
-            SphereManager = manager;
+            Manager = manager;
             this.Row = Row;
             _rp = new RenderParams(manager.Material)
             {
@@ -53,9 +54,10 @@ namespace CompoundSpheres
         /// <summary>
         /// draw the spheretiles
         /// </summary>
-        public void DrawTiles()
+        public void DrawTiles(int Min)
         {
-            Graphics.RenderMeshIndirect(_rp, SphereManager.SphereTileMesh, SphereManager.commandBuf, 1);
+            Properties.SetInteger("Row", (Row * Cols) + Min);
+            Graphics.RenderMeshIndirect(_rp, Manager.SphereTileMesh, Manager.commandBuf, 1);
         }
         private RenderParams _rp;
     }
