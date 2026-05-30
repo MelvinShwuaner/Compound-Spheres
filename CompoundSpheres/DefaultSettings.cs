@@ -44,11 +44,11 @@ namespace CompoundSpheres
         /// <summary>
         /// always display colored textures by default
         /// </summary>
-        public static DisplayMode DefaultMode(SphereManager Manager) { return DisplayMode.ColoredTexture; }
+        public static DisplayMode DefaultMode() { return DisplayMode.ColoredTexture; }
         /// <summary>
         /// by default, render one half of the cylinder (which is facing the camera)
         /// </summary>
-        public static void DefaultRange(SphereManager SphereManager, out int Min, out int Max) { Min = -(SphereManager.Rows / 4); Max = SphereManager.Rows / 4; }
+        public static void DefaultRange(SphereManager SphereManager, out Range X, out Range Y) { X = new Range(-(SphereManager.Rows / 4), SphereManager.Rows / 4); Y = X; }
         /// <summary>
         /// default tile size is One
         /// </summary>

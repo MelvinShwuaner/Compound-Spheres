@@ -54,9 +54,8 @@ namespace CompoundSpheres
         /// <summary>
         /// draw the spheretiles
         /// </summary>
-        public void DrawTiles(int Min)
+        public void DrawTiles()
         {
-            Properties.SetInteger("Row", (Row * Cols) + Min);
             Graphics.RenderMeshIndirect(_rp, Manager.SphereTileMesh, Manager.commandBuf, 1);
         }
         private RenderParams _rp;

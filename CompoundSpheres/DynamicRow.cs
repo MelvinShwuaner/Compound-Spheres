@@ -11,12 +11,9 @@ namespace CompoundSpheres
 {
     public class DynamicRow : IEnumerable
     {
-        int[] flags;
-        HashSet<int> _enabled, indices;
         ComputeShader Culler;
-        ComputeBuffer VisibleIDs;
-        ComputeBuffer VisibilityFlags;
-        Buffer<int> IndicesBuffer;
+        ComputeBuffer VisibleIndices;
+        ComputeBuffer<int> Indices;
         int Kernel;
         /// <summary>
         /// the manager of this row
@@ -27,7 +24,7 @@ namespace CompoundSpheres
         /// </summary>
         /// <param name="i"></param>
         /// <returns></returns>
-        public DynamicTile this[int i] => Manager.Tiles[IndicesBuffer[i]];
+        public DynamicTile this[int i] => Manager.Tiles[Indices[i]];
         /// <summary>
         /// the number of tiles in this row
         /// </summary>
@@ -57,14 +54,11 @@ namespace CompoundSpheres
             this.Culler = Culler;
             Kernel = Culler.FindKernel("CSMain");
 
-            flags = new int[this.Cols];
-            for (int i = 0; i < this.Cols; i++)
-                flags[i] = 1;
+            Indices = new ComputeBuffer<int>(Culler, Kernel, "Indices", Cols);
+            Indices.Set((int i) => -1);
+            UpdateIndices();
 
-            VisibilityFlags = new ComputeBuffer(this.Cols, sizeof(int));
-            VisibilityFlags.SetData(flags);
-
-            VisibleIDs = new ComputeBuffer(this.Cols, sizeof(uint),
+            VisibleIndices = new ComputeBuffer(this.Cols, sizeof(uint),
                 ComputeBufferType.Append);
 
             args[0] = Mesh.GetIndexCount(0);
@@ -74,21 +68,24 @@ namespace CompoundSpheres
             argsBuffer = new ComputeBuffer(1, args.Length * sizeof(uint), ComputeBufferType.IndirectArguments);
             argsBuffer.SetData(args);
 
-            this.Culler.SetBuffer(Kernel, "_VisibilityFlags", VisibilityFlags);
-            this.Culler.SetBuffer(Kernel, "_VisibleInstanceIDs", VisibleIDs);
-            this.Culler.SetInt("_InstanceCount", this.Cols);
+            this.Culler.SetBuffer(Kernel, "VisibleIndices", VisibleIndices);
+            this.Culler.SetInt("Count", this.Cols);
 
-            Properties.SetBuffer("_VisibleInstanceIDs", VisibleIDs);
-
-            IndicesBuffer = new Buffer<int>(GraphicsBuffer.Target.Structured, this.Cols, Properties, "IndicesBuffer");
+            Properties.SetBuffer("VisibleIndices", VisibleIndices);
         }
         public void UpdateIndices()
         {
-            IndicesBuffer.Refresh();
+            if (Indices.IsDirty)
+            {
+                Indices.Refresh();
+                VisibleIndices.SetCounterValue(0);
+                Culler.Dispatch(Kernel, Mathf.CeilToInt(Cols / 64f), 1, 1);
+                ComputeBuffer.CopyCount(VisibleIndices, argsBuffer, sizeof(uint));
+            }
         }
         public void SetIndice(int indice, int Index)
         {
-            IndicesBuffer[indice] = Index;
+            Indices[indice] = Index;
         }
         IEnumerator IEnumerable.GetEnumerator()
         {
@@ -99,20 +96,15 @@ namespace CompoundSpheres
         }
         internal void Dispose()
         {
-            VisibilityFlags?.Release();
-            VisibleIDs?.Release();
+            Indices?.Dispose();
+            VisibleIndices?.Release();
             argsBuffer?.Release();
-            IndicesBuffer?.Dispose();
         }
         /// <summary>
         /// draw the spheretiles
         /// </summary>
         public void DrawTiles()
         {
-            VisibleIDs.SetCounterValue(0);
-            Culler.Dispatch(Kernel, Mathf.CeilToInt(Cols / 64f), 1, 1);
-            ComputeBuffer.CopyCount(VisibleIDs, argsBuffer, sizeof(uint));
-
             Graphics.DrawMeshInstancedIndirect(Mesh, 0, Material, worldBounds, argsBuffer, 0, Properties);
         }
     }

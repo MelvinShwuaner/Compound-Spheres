@@ -6,6 +6,38 @@ using UnityEngine;
 
 namespace CompoundSpheres
 {
+    public class ComputeGraphicsBufferData<T> : IBufferData where T : struct
+    {
+        public string Name { get; set; }
+        public int Kernel;
+        public string ComputeName;
+        public int Threads;
+        public IBuffer GetBuffer(ManagerRoot ManagerData)
+        {
+           return new ComputeGraphicsBuffer<T>(ManagerData.ComputeShader, ManagerData.Material, Kernel, ComputeName, Name, ManagerData.TotalTiles, Threads);
+        }
+        public ComputeGraphicsBufferData(string Name, string ComputeName, int Kernel, int Threads)
+        {
+            this.Name = Name;
+            this.Kernel = Kernel;
+            this.ComputeName = ComputeName;
+            this.Threads = Threads;
+        }
+    }
+    public class ComputeBufferData<T> : IBufferData where T : struct
+    {
+        public string Name { get; private set; }
+        public GetCustomData<T> getCustomData;
+        public IBuffer GetBuffer(ManagerRoot ManagerData)
+        {
+            return new WrappedComputeBuffer<T>(new ComputeBuffer<T>(ManagerData.ComputeShader, ManagerData.MatrixKernel, Name, ManagerData.TotalTiles), getCustomData);
+        }
+        public ComputeBufferData(string Name, GetCustomData<T> getCustomData)
+        {
+           this.Name = Name;
+           this.getCustomData = getCustomData;
+        }
+    }
     /// <summary>
     /// a shared buffer, whose index's are independent from the tiles. can enlarge dynamically
     /// </summary>
@@ -41,11 +73,11 @@ namespace CompoundSpheres
             this.getCustomData = getCustomData;
         }
         /// <inheritdoc/>
-        public IBuffer GetBuffer(Material Material, int InitialLength)
+        public IBuffer GetBuffer(ManagerRoot Manager)
         {
-            GraphicsBuffer Buffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, InitialLength*ItemLength, Size);
-            Material.SetBuffer(Name, Buffer);
-            return new WrappeMultiBuffer<T>(Buffer, getCustomData, ItemLength, InitialLength, Name, Material);
+            GraphicsBuffer Buffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, Manager.TotalTiles * ItemLength, Size);
+            Manager.Material.SetBuffer(Name, Buffer);
+            return new WrappedMultiBuffer<T>(Buffer, getCustomData, ItemLength, Manager.TotalTiles, Name, Manager.Material);
         }
     }
     /// <summary>
@@ -53,14 +85,15 @@ namespace CompoundSpheres
     /// </summary>
     public interface IBufferData {
         /// <summary>
-        /// adds a custom buffer to a material and returns it
+        /// adds a custom buffer to a manager and returns it
         /// </summary>
-        IBuffer GetBuffer(Material Material, int Length);
+        IBuffer GetBuffer(ManagerRoot ManagerData);
         /// <summary>
         /// the name of the custom buffer
         /// </summary>
         string Name { get; }
     }
+
     /// <summary>
     /// a custom buffer configuration, which tells the sphere manager to add a new graphics buffer
     /// </summary>
@@ -90,9 +123,9 @@ namespace CompoundSpheres
             this.getCustomData = getCustomData;
         }
         /// <inheritdoc/>
-        public IBuffer GetBuffer(Material Material, int Length)
+        public IBuffer GetBuffer(ManagerRoot manager)
         {
-            return new WrappedBuffer<T>(new Buffer<T>(GraphicsBuffer.Target.Structured, Length, Material, Name), getCustomData);
+            return new WrappedBuffer<T>(new Buffer<T>(GraphicsBuffer.Target.Structured, manager.TotalTiles, manager.Material, Name), getCustomData);
         }
     }
     public struct Range
@@ -142,9 +175,9 @@ namespace CompoundSpheres
     /// </summary>
     public delegate Vector3 GetSphereTilePosition(SphereManager Manager, float x, float y, float height);
     /// <summary>
-    /// the rotation of any spheretile, position is made then the rotation is made
+    /// converts a X,Y position and height to a position on the Sphere
     /// </summary>
-    public delegate Quaternion GetSphereTileRotation<T>(T SphereTile) where T : TileBase;
+    public delegate Vector3 GetDynamicPosition(DynamicManager Manager, int Index);
     /// <summary>
     /// the scale of a spheretile, called everytime its Row updates it
     /// </summary>
@@ -152,11 +185,7 @@ namespace CompoundSpheres
     /// <summary>
     /// the Index of a spheretiles texture in the sphere managers texture array
     /// </summary>
-    public delegate int GetSphereTileTexture<T>(T SphereTile) where T : TileBase;
-    /// <summary>
-    /// the color of a spheretile
-    /// </summary>
-    public delegate Color32 GetSphereTileColor<T>(T sphereTile) where T : TileBase;
+    public delegate int GetSphereTileTexture(SphereTile SphereTile);
     /// <summary>
     /// if true, textures will be displayed on all tiles, if false only colors will be displayed
     /// </summary>
@@ -174,20 +203,23 @@ namespace CompoundSpheres
     /// </summary>
     public delegate void Initiation(SphereManager Manager);
     /// <summary>
+    /// called once the manager is created
+    /// </summary>
+    public delegate void DynamicInitiation(DynamicManager Manager);
+    /// <summary>
     /// The Settings of a sphere manager, only used when it is created, you cannot update it after
     /// </summary>
     /// <remarks>every single setting must be set! default settings are stored in <see cref="DefaultSettings"/></remarks>
     public class SphereManagerSettings : ManagerSettings<SphereTile>
     {
         /// <summary>
+        /// the Index of a spheretiles texture in the sphere managers texture array
+        /// </summary>
+        public GetSphereTileTexture GetSphereTileTexture;
+        /// <summary>
         /// the array of textures the manager can display, a spheretile displays a texture at index getspheretiletexture
         /// </summary>
         public Texture2DArray TextureArray;
-        /// <summary>
-        /// converts a X,Y position and height to a position on the Sphere
-        /// </summary>
-        public GetSphereTilePosition getspheretileposition;
-        
         /// <summary>
         /// the Range of Rows around the camera that draw their tiles
         /// </summary>
@@ -200,10 +232,7 @@ namespace CompoundSpheres
         /// Settings for a sphere manager
         /// </summary>
         /// <param name="Initiation">the function called when the sphere manager is created</param>
-        /// <param name="getSphereTilePosition">converts a x,y coordinate on a grid and a Height variable to a coordinate on the sphere</param>
-        /// <param name="getSphereTileRotation">gets the rotation of a sphere tile, called once</param>
         /// <param name="getSphereTileScale">gets the scale of the tile, called everytime it is refreshed</param>
-        /// <param name="getSphereTileColor">gets the color of the tile, called everytime it is refreshed</param>
         /// <param name="getSphereTileTexture">how the textures and colors are rendered on each tile, called everytime they are drawn</param>
         /// <param name="getdisplaymode">if true, tiles will display their textures, otherwise they only display their color, called everytime tiles are rendered</param>
         /// <param name="Textures">an array of textures that can be displayed, every texture must have same format provided and size</param>
@@ -213,13 +242,13 @@ namespace CompoundSpheres
         /// <param name="getCameraRange">gets the range of rows that are displayede around the cameraparam</param>
         /// <param name="custombuffers">a list of custom buffers this manager's shader has (Optional)</param>
         /// <remarks>the Material MUST have the compound sphere shader or another shader with same functionality</remarks>
-        public SphereManagerSettings(Initiation Initiation, GetSphereTilePosition getSphereTilePosition, GetSphereTileRotation<SphereTile> getSphereTileRotation, GetSphereTileScale<SphereTile> getSphereTileScale, GetSphereTileColor<SphereTile> getSphereTileColor, GetSphereTileTexture<SphereTile> getSphereTileTexture, GetDisplayMode getdisplaymode, Texture2D[] Textures, TextureFormat Format, Mesh mesh, Material material, GetCameraRange getCameraRange, List<IBufferData> custombuffers = null)
+        public SphereManagerSettings(Initiation Initiation, ComputeShader MatrixCalculater, string matrixKernel, string colorkernel, GetSphereTileScale<SphereTile> getSphereTileScale, GetSphereTileTexture getSphereTileTexture, GetDisplayMode getdisplaymode, Texture2D[] Textures, TextureFormat Format, Mesh mesh, Material material, GetCameraRange getCameraRange, List<IBufferData> custombuffers = null)
         {
-            getspheretileposition = getSphereTilePosition;
-            GetSphereTileRotation = getSphereTileRotation;
+            this.ComputeShader = MatrixCalculater;
+            this.MatrixKernel = matrixKernel;
+            ColorKernel = colorkernel;
             GetSphereTileScale = getSphereTileScale;
             GetSphereTileTexture = getSphereTileTexture;
-            GetSphereTileColor = getSphereTileColor;
             SphereTileMesh = mesh;
             SphereTileMaterial = material;
             GetDisplayMode = getdisplaymode;
@@ -241,10 +270,7 @@ namespace CompoundSpheres
         /// Settings for a sphere manager
         /// </summary>
         /// <param name="Initiation">the function called when the sphere manager is created</param>
-        /// <param name="getSphereTilePosition">converts a x,y coordinate on a grid and a Height variable to a coordinate on the sphere</param>
-        /// <param name="getSphereTileRotation">gets the rotation of a sphere tile, called once</param>
         /// <param name="getSphereTileScale">gets the scale of the tile, called everytime it is refreshed</param>
-        /// <param name="getSphereTileColor">gets the color of the tile, called everytime it is refreshed</param>
         /// <param name="getSphereTileTexture">gets the index of a texture in the Textures Array, of the tile, called everytime it is refreshed</param>
         /// <param name="getdisplaymode">how the textures and colors are rendered on each tile, called everytime they are drawn</param>
         /// <param name="Textures">an array of textures that can be displayed, you must create this and apply it first</param>
@@ -253,13 +279,13 @@ namespace CompoundSpheres
         /// <param name="custombuffers">a list of custom buffers this manager's shader has (Optional)</param>
         /// <param name="getCameraRange">gets the range of rows that are displayede around the cameraparam</param>
         /// <remarks>the Material MUST have the compound sphere shader or another shader with same functionality</remarks>
-        public SphereManagerSettings(Initiation Initiation, GetSphereTilePosition getSphereTilePosition, GetSphereTileRotation<SphereTile> getSphereTileRotation, GetSphereTileScale<SphereTile> getSphereTileScale, GetSphereTileColor<SphereTile> getSphereTileColor, GetSphereTileTexture<SphereTile> getSphereTileTexture, GetDisplayMode getdisplaymode, Texture2DArray Textures, Mesh mesh, Material material, GetCameraRange getCameraRange, List<IBufferData> custombuffers = null)
+        public SphereManagerSettings(Initiation Initiation, ComputeShader MatrixCalculater, string matrixkernel, string colorkernel, GetSphereTileScale<SphereTile> getSphereTileScale, GetSphereTileTexture getSphereTileTexture, GetDisplayMode getdisplaymode, Texture2DArray Textures, Mesh mesh, Material material, GetCameraRange getCameraRange, List<IBufferData> custombuffers = null)
         {
-            getspheretileposition = getSphereTilePosition;
-            GetSphereTileRotation = getSphereTileRotation;
+            this.ComputeShader = MatrixCalculater;
+            this.MatrixKernel = matrixkernel;
+            ColorKernel = colorkernel;
             GetSphereTileScale = getSphereTileScale;
             GetSphereTileTexture = getSphereTileTexture;
-            GetSphereTileColor = getSphereTileColor;
             SphereTileMesh = mesh;
             SphereTileMaterial = material;
             GetDisplayMode = getdisplaymode;
@@ -273,6 +299,42 @@ namespace CompoundSpheres
     {
         public ComputeShader Culler;
         public GetCameraRangeDynamic GetCameraRange;
+        public Texture2D Atlas;
+        public DynamicInitiation Initiation;
+        public GetDynamicPosition GetTilePosition;
+        public Rect[] UVs;
+        public DynamicManagerSettings(DynamicInitiation Initiation, ComputeShader MatrixCalculater, GetSphereTileScale<DynamicTile> getSphereTileScale, GetDisplayMode getdisplaymode, Texture2D Atlas, Rect[] UVs, Mesh mesh, Material material, ComputeShader Culler, GetCameraRangeDynamic getCameraRange, List<IBufferData> custombuffers = null)
+        {
+            this.ComputeShader = MatrixCalculater;
+            GetSphereTileScale = getSphereTileScale;
+            
+            
+            SphereTileMesh = mesh;
+            SphereTileMaterial = material;
+            GetDisplayMode = getdisplaymode;
+            this.GetCameraRange = getCameraRange;
+            this.Initiation = Initiation;
+            this.Culler = Culler;
+            this.UVs = UVs;
+            this.Atlas = Atlas;
+            CustomBuffers = custombuffers;
+        }
+        public DynamicManagerSettings(DynamicInitiation Initiation, ComputeShader MatrixCalculater, GetSphereTileScale<DynamicTile> getSphereTileScale, GetDisplayMode getdisplaymode, Texture2D[] Textures, Mesh mesh, Material material, ComputeShader Culler, GetCameraRangeDynamic getCameraRange, List<IBufferData> custombuffers = null)
+        {
+            this.ComputeShader = MatrixCalculater;
+            GetSphereTileScale = getSphereTileScale;
+           
+            
+            SphereTileMesh = mesh;
+            SphereTileMaterial = material;
+            GetDisplayMode = getdisplaymode;
+            this.GetCameraRange = getCameraRange;
+            this.Initiation = Initiation;
+            this.Culler = Culler;
+            CustomBuffers = custombuffers;
+            Atlas = new Texture2D(1, 1);
+            UVs = Atlas.PackTextures(Textures, 2, 4096);
+        }
     }
     public class ManagerSettings<T> where T : TileBase
     {
@@ -293,20 +355,14 @@ namespace CompoundSpheres
         /// </summary>
         public GetDisplayMode GetDisplayMode;
         /// <summary>
-        /// the rotation of any spheretile, position is made then the rotation is made
-        /// </summary>
-        public GetSphereTileRotation<T> GetSphereTileRotation;
-        /// <summary>
         /// the scale of a spheretile, called everytime its Row updates it
         /// </summary>
         public GetSphereTileScale<T> GetSphereTileScale;
         /// <summary>
-        /// the Index of a spheretiles texture in the sphere managers texture array
+        /// 
         /// </summary>
-        public GetSphereTileTexture<T> GetSphereTileTexture;
-        /// <summary>
-        /// the color of a spheretile
-        /// </summary>
-        public GetSphereTileColor<T> GetSphereTileColor;
+        public ComputeShader ComputeShader;
+        public string MatrixKernel;
+        public string ColorKernel;
     }
 }

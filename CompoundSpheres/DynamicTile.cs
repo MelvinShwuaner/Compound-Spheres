@@ -9,31 +9,16 @@ namespace CompoundSpheres
 {
     public class DynamicTile : TileBase
     {
-        public DynamicRow DynamicRow { get; internal set; }
+        public DynamicRow? DynamicRow { get; internal set; } = null;
 
-        public DynamicManager Manager => DynamicRow.Manager;
-        public readonly int Index;
-        public int Row => DynamicRow.Row;
-        public int Col { get; internal set;  }
-        public DynamicTile(int Row, int Col, DynamicRow DynamicRow)
+        public readonly DynamicManager Manager;
+        public int Row => DynamicRow?.Row ?? -1;
+        public int Col { get; internal set; } = -1;
+        public DynamicTile(int Index, DynamicManager Manager) : base(Index)
         {
-            this.DynamicRow = DynamicRow;
-            this.Index = DynamicRow.Cols * Row + Col;
-            this.Col = Col;
-        }
-        /// <summary>
-        /// Updates and Returns the Color
-        /// </summary>
-        public override Color32 UpdateColor()
-        {
-            Color = Manager.SphereTileColor(this);
-            return Color;
+            this.Manager = Manager;
         }
 
-        public override Matrix4x4 UpdateMatrix()
-        {
-            throw new NotImplementedException();
-        }
 
         /// <summary>
         /// Updates and Returns the Scale
@@ -42,14 +27,6 @@ namespace CompoundSpheres
         {
             Scale = Manager.SphereTileScale(this);
             return Scale;
-        }
-        /// <summary>
-        /// Updates and Returns the texture index
-        /// </summary>
-        public override int UpdateTexture()
-        {
-            TextureIndex = Manager.SphereTileTexture(this);
-            return TextureIndex;
         }
     }
 }

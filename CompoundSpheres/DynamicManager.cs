@@ -16,14 +16,18 @@ namespace CompoundSpheres
         public override DynamicTile this[int x, int y] => Rows[x][y];
 
         public override int RowCount => Rows.Length;
+        Texture2D Atlas;
+        Rect[] UVs;
 
         public DynamicManager Init(DynamicManagerSettings Settings, int Rows, int InitialCols)
         {
             Tiles = new DynamicTile[InitialCols*Rows];
+            Atlas = Settings.Atlas;
+            UVs = Settings.UVs;
             this.Rows = new DynamicRow[Rows];
             base.Init(Settings);
             GetRange = Settings.GetCameraRange;
-            //TrackChanges = true;
+            Material.SetTexture("Atlas", Atlas);
             return this;
         }
         protected override void OnDestroy()
@@ -39,9 +43,6 @@ namespace CompoundSpheres
             DynamicTile[] temp = new DynamicTile[Tiles.Length + Amount];
             Tiles.CopyTo(temp, 0);
             Tiles = temp;
-            Matrixes.Enlarge(TotalTiles);
-            Colors.Enlarge(TotalTiles);
-            //Textures.Enlarge(TotalTiles);
             Scales.Enlarge(TotalTiles);
         }
         public void DrawTiles(int CameraX)
@@ -76,10 +77,9 @@ namespace CompoundSpheres
                     var Row = manager.Rows[i] = new DynamicRow(manager, i, InitialCols, Instantiate(Settings.Culler));
                     for (int j = 0; j < InitialCols; j++)
                     {
-                        manager.Tiles[j * InitialCols + i] = new DynamicTile(i, j, Row);
-                        manager.Rows[i].SetIndice(j, i * InitialCols + j);
+                        int index = i * InitialCols + j;
+                        manager.Tiles[index] = new DynamicTile(index, manager);
                     }
-                    Row.UpdateIndices();
                 }
                 return manager;
             }

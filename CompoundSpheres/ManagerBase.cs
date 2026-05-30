@@ -7,7 +7,18 @@ using UnityEngine;
 
 namespace CompoundSpheres
 {
-    public abstract class ManagerBase<T> : MonoBehaviour where T : TileBase
+    public abstract class ManagerRoot : MonoBehaviour {
+        public ComputeShader ComputeShader { get; protected set; }
+        public int MatrixKernel { get; protected set; }
+        public int ColorKernel { get; protected set; }
+        /// <summary>
+        /// The material used, every tile has the same material
+        /// </summary>
+        /// <remarks>dont add custom buffers directly to this, instead use addcustombuffer, since the manager will manage the buffer for you</remarks>
+        public Material Material { protected set; get; }
+        public abstract int TotalTiles { get; }
+    }
+    public abstract class ManagerBase<T> : ManagerRoot where T : TileBase
     {
         internal T[] Tiles;
         public abstract int RowCount { get; }
@@ -18,23 +29,16 @@ namespace CompoundSpheres
         /// <summary>
         /// the total amount of tiles
         /// </summary>
-        public int TotalTiles => Tiles.Length;
+        public override int TotalTiles => Tiles.Length;
         /// <summary>
         /// The Mesh used, every tile has the same mesh
         /// </summary>
         public Mesh SphereTileMesh { protected set; get; }
-        protected GetSphereTileRotation<T> getSphereTileRotation;
         protected GetSphereTileScale<T> getSphereTileScale;
-        protected GetSphereTileTexture<T> getSphereTileTexture;
-        protected GetSphereTileColor<T> getSphereTileColor;
-        /// <summary>
-        /// The material used, every tile has the same material
-        /// </summary>
-        /// <remarks>dont add custom buffers directly to this, instead use addcustombuffer, since the manager will manage the buffer for you</remarks>
-        public Material Material { protected set; get; }
-        protected Buffer<Matrix4x4> Matrixes;
-        protected Buffer<Color32> Colors;
+        protected ComputeBuffer<Vector2> Positions;
         protected Buffer<Vector3> Scales;
+        protected ComputeGraphicsBuffer<Matrix4x4> Matrixes;
+        protected ComputeGraphicsBuffer<Color32> Colors;
         protected Dictionary<string, IBuffer> CustomBuffers;
         protected GetDisplayMode getdisplaymode;
         protected virtual void OnDestroy()
@@ -46,22 +50,27 @@ namespace CompoundSpheres
                     buffer.Value.Dispose();
                 }
             }
+            Matrixes.Dispose();
+            Positions.Dispose();
             Scales.Dispose();
             Colors.Dispose();
-            Matrixes.Dispose();
         }
         protected void Init(ManagerSettings<T> Settings)
         {
             SphereTileMesh = Settings.SphereTileMesh;
             Material = Settings.SphereTileMaterial;
             getdisplaymode = Settings.GetDisplayMode;
-            getSphereTileColor = Settings.GetSphereTileColor;
-            getSphereTileTexture = Settings.GetSphereTileTexture;
-            getSphereTileRotation = Settings.GetSphereTileRotation;
+            
             getSphereTileScale = Settings.GetSphereTileScale;
+            ComputeShader = Settings.ComputeShader;
+            MatrixKernel = Settings.ComputeShader.FindKernel(Settings.MatrixKernel);
+            ColorKernel = Settings.ComputeShader.FindKernel(Settings.ColorKernel);
 
-            Matrixes = new Buffer<Matrix4x4>(GraphicsBuffer.Target.Structured, TotalTiles, Material, "Matrixes");
-            Colors = new Buffer<Color32>(GraphicsBuffer.Target.Structured, TotalTiles, Material, "Colors");
+            Positions = new ComputeBuffer<Vector2>(Settings.ComputeShader, MatrixKernel, "InputPositions", TotalTiles);
+
+            Matrixes = new ComputeGraphicsBuffer<Matrix4x4>(ComputeShader, Material, MatrixKernel, "OutputMatrices", "Matrixes", TotalTiles, 64);
+            Colors = new ComputeGraphicsBuffer<Color32>(ComputeShader, Material, ColorKernel, "OutputColors", "Colors", TotalTiles, 64);
+
             Scales = new Buffer<Vector3>(GraphicsBuffer.Target.Structured, TotalTiles, Material, "Scales");
 
             if (Settings.CustomBuffers != null)
@@ -71,6 +80,10 @@ namespace CompoundSpheres
                     AddCustomBuffer(buffer);
                 }
             }
+        }
+        public void SetComputeProperty(string name, float value)
+        {
+            ComputeShader.SetFloat(name, value);
         }
         /// <summary>
         /// clamps a position + change to the X Axis
@@ -96,7 +109,7 @@ namespace CompoundSpheres
         /// </summary>
         public IBuffer AddCustomBuffer(IBufferData data)
         {
-            IBuffer buffer = data.GetBuffer(Material, TotalTiles);
+            IBuffer buffer = data.GetBuffer(this);
             CustomBuffers ??= new Dictionary<string, IBuffer>();
             CustomBuffers.Add(data.Name, buffer);
             return buffer;
@@ -125,9 +138,9 @@ namespace CompoundSpheres
         /// <summary>
         /// updates a tiles color
         /// </summary>
-        public void UpdateColor(int I)
+        public void SetColorDirty(int I)
         {
-            Colors[I] = Tiles[I].UpdateColor();
+            Colors.Update(I);
         }
         /// <summary>
         /// refresh the matrix array
@@ -136,9 +149,10 @@ namespace CompoundSpheres
         {
             Scales.Refresh();
         }
-        /// <summary>
-        /// refresh the matrix array
-        /// </summary>
+        public void SetMatrixDirty(int I)
+        {
+            Matrixes.Update(I);
+        }
         public void RefreshMatrixes()
         {
             Matrixes.Refresh();
@@ -163,7 +177,6 @@ namespace CompoundSpheres
             RefreshScales();
             RefreshColors();
             RefreshTextures();
-            RefreshMatrixes();
         }
         /// <summary>
         /// refresh all of the custom buffers
@@ -181,17 +194,10 @@ namespace CompoundSpheres
         }
         internal virtual void Begin()
         {
-            Matrixes.Set((int i) => Tiles[i].Matrix);
+            Positions.Set((int i) => Tiles[i].Position); ;
+            ComputeShader.Dispatch(MatrixKernel, TotalTiles/64, 1, 1);
+            ComputeShader.Dispatch(ColorKernel, TotalTiles / 64, 1, 1);
             Scales.Set((int i) => Tiles[i].UpdateScale());
-            Colors.Set((int i) => Tiles[i].UpdateColor());
-            
-        }
-        /// <summary>
-        /// gets the rotation of a spheretile
-        /// </summary>
-        public Quaternion GetSphereTileRotation(T SphereTile)
-        {
-            return getSphereTileRotation(SphereTile);
         }
         /// <summary>
         /// the scale of a spheretile
@@ -200,26 +206,15 @@ namespace CompoundSpheres
         {
             return getSphereTileScale(SphereTile);
         }
-        /// <summary>
-        /// the color of a spheretile
-        /// </summary>
-        /// <remarks>the Alpha Component is NOT USED.</remarks>
-        public Color32 SphereTileColor(T SphereTile)
-        {
-            return getSphereTileColor(SphereTile);
-        }
-        /// <summary>
-        /// the Index of the texture in the textures array that this spheretile has
-        /// </summary>
-        /// <param name="SphereTile"></param>
-        /// <returns></returns>
-        public int SphereTileTexture(T SphereTile)
-        {
-            return getSphereTileTexture(SphereTile);
-        }
     }
     public abstract class TileBase
     {
+        protected TileBase(int Index)
+        {
+            this.Index = Index;
+        }
+        public readonly int Index;
+        public Vector2 Position => new Vector2(X, Y);
         /// <summary>
         /// the X position on the grid, which is its row
         /// </summary>
@@ -229,44 +224,16 @@ namespace CompoundSpheres
         /// </summary>
         public int Y { get; internal set; }
         /// <summary>
-        /// the rotation
-        /// </summary>
-        public Quaternion Rotation { get; protected set; }
-        /// <summary>
-        /// the Position in 3D space
-        /// </summary>
-        public Vector3 Position { get; protected set; }
-        /// <summary>
         /// the scale of this tile, this is not constant and can change
         /// </summary>
         public Vector3 Scale { get; protected set; }
         /// <summary>
         /// the color of this tile, represented by vector4
         /// </summary>
-        public Color32 Color { get; protected set; }
-        /// <summary>
-        /// the texture index of this sphere tile in the managers texture array
-        /// </summary>
-        public int TextureIndex { get; protected set; }
-        /// <summary>
-        /// a Matrix4x4 representing the position, rotation of the sphere tile
-        /// </summary>
-        public Matrix4x4 Matrix => Matrix4x4.Translate(Position) * Matrix4x4.Rotate(Rotation);
-        /// <summary>
-        /// Updates and Returns the Color
-        /// </summary>
-        public abstract Color32 UpdateColor();
-        /// <summary>
-        /// Updates and Returns the Matrix
-        /// </summary>
-        public abstract Matrix4x4 UpdateMatrix();
+        public Color32 Color { get; internal set; }
         /// <summary>
         /// Updates and Returns the Scale
         /// </summary>
         public abstract Vector3 UpdateScale();
-        /// <summary>
-        /// Updates and Returns the texture index
-        /// </summary>
-        public abstract int UpdateTexture();
     }
 }

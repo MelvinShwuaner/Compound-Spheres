@@ -51,6 +51,7 @@ namespace CompoundSpheres
         GetCameraRange GetCameraRange;
         protected GetSphereTilePosition SphereTilePos;
         protected Buffer<float> Textures;
+        protected GetSphereTileTexture getSphereTileTexture;
         #endregion
         protected override void OnDestroy()
         {
@@ -67,11 +68,12 @@ namespace CompoundSpheres
             base.Init(sphereManagerSettings);
             GetCameraRange = sphereManagerSettings.GetCameraRange;
             
-            SphereTilePos = sphereManagerSettings.getspheretileposition;
             Material.SetTexture("TextureArray", sphereManagerSettings.TextureArray);
             Textures = new Buffer<float>(GraphicsBuffer.Target.Structured, TotalTiles, Material, "Textures");
+            getSphereTileTexture = sphereManagerSettings.GetSphereTileTexture;
 
             Radius = Rows / (2 * Mathf.PI);
+            ComputeShader.SetFloat("Radius", Radius);
             SphereRows = new SphereRow[rows];
 
             commandBuf = new GraphicsBuffer(GraphicsBuffer.Target.IndirectArguments, 1, GraphicsBuffer.IndirectDrawIndexedArgs.size);
@@ -114,10 +116,11 @@ namespace CompoundSpheres
             uint MaxCol = (uint)Mathf.Clamp(Col.Max + CameraY, 0, Cols);
             int MinCol = Mathf.Clamp(CameraY + Col.Min, 0, Cols);
             SetRenderAmount(MaxCol - (uint)MinCol);
+            Material.SetInteger("Col", MinCol);
             for (int i = Row.Min; i < Row.Max; i++)
             {
                 int I = (int)Clamp(CameraX, i);
-                SphereRows[I].DrawTiles(MinCol);
+                SphereRows[I].DrawTiles();
             }
         }
         /// <summary>
@@ -126,9 +129,11 @@ namespace CompoundSpheres
         public void DrawAllTiles()
         {
             Material.SetFloat("ShouldRenderTextures", (int)getdisplaymode());
+            Material.SetInteger("Col", 0);
+            SetRenderAmount((uint)Cols);
             foreach (SphereRow row in this)
             {
-                row.DrawTiles(0);
+                row.DrawTiles();
             }
         }
         /// <summary>
@@ -150,7 +155,7 @@ namespace CompoundSpheres
         /// </summary>
         public void UpdateColor(int X, int Y)
         {
-           UpdateColor((X*Cols) +Y);
+           SetColorDirty((X*Cols) +Y);
         }
         /// <summary>
         /// marks a tile's matrix to be refreshed
@@ -165,6 +170,10 @@ namespace CompoundSpheres
         public void UpdateTexture(int X, int Y)
         {
             UpdateTexture((X * Cols) + Y);
+        }
+        public int sphereTileTexture(SphereTile sphereTile)
+        {
+            return getSphereTileTexture(sphereTile);
         }
         /// <summary>
         /// updates a tiles texture
