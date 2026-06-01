@@ -1,0 +1,184 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
+using Unity.Collections;
+using UnityEngine;
+
+namespace CompoundMeshes
+{
+    public class ComputeGraphicsBufferData<T> : IBufferData where T : struct
+    {
+        public string Name { get; set; }
+        public string Kernel;
+        public string ComputeName;
+        public int Threads;
+        public IBuffer GetBuffer(MeshManager ManagerData)
+        {
+           var buffer = new ComputeGraphicsBuffer<T>(ManagerData.ComputeShader, ManagerData.Material, ManagerData.ComputeShader.FindKernel(Kernel), ComputeName, Name, ManagerData.MeshCount, Threads);
+           return buffer;
+        }
+        public ComputeGraphicsBufferData(string Name, string ComputeName, string Kernel, int Threads)
+        {
+            this.Name = Name;
+            this.Kernel = Kernel;
+            this.ComputeName = ComputeName;
+            this.Threads = Threads;
+        }
+    }
+    public class ComputeBufferData<T> : IBufferData where T : struct
+    {
+        public string Name { get; private set; }
+        public string Kernel { get; private set; }
+        public GetCustomData<T> getCustomData;
+        public IBuffer GetBuffer(MeshManager ManagerData)
+        {
+            return new WrappedComputeBuffer<T>(new ComputeBuffer<T>(ManagerData.ComputeShader, ManagerData.ComputeShader.FindKernel(Kernel), Name, ManagerData.MeshCount), getCustomData);
+        }
+        public ComputeBufferData(string Name, string Kernel, GetCustomData<T> getCustomData)
+        {
+           this.Name = Name;
+           this.Kernel = Kernel;
+           this.getCustomData = getCustomData;
+        }
+    }
+    /// <summary>
+    /// a shared buffer, whose index's are independent from the tiles. can enlarge dynamically
+    /// </summary>
+    public class DynamicBufferData<T> : IBufferData where T : struct
+    {
+        /// <summary>
+        /// a function that returns your custom data for each sphere tile
+        /// </summary>
+        public readonly BufferFunction<T> getCustomData;
+        /// <summary>
+        /// the name of this buffer, in your custom shader
+        /// </summary>
+        public string Name { get; set; }
+        /// <summary>
+        /// the size of each item in the buffer. 
+        /// </summary>
+        public readonly int ItemLength;
+        /// <summary>
+        /// the size of the data being stored, in bytes
+        /// </summary>
+        public readonly int Size;
+        /// <summary>
+        /// a custom buffer configuration, which tells the sphere manager to add a new compute buffer
+        /// </summary>
+        /// <param name="Name">the name of this buffer, in your custom shader</param>
+        /// <param name="ItemLength">the size of each item in the buffer. </param>
+        /// <param name="getCustomData">a function that returns your custom data for each sphere tile</param>
+        public DynamicBufferData(string Name, int ItemLength, BufferFunction<T> getCustomData)
+        {
+            this.Name = Name;
+            Size = Marshal.SizeOf<T>();
+            this.ItemLength = ItemLength;
+            this.getCustomData = getCustomData;
+        }
+        /// <inheritdoc/>
+        public IBuffer GetBuffer(MeshManager Manager)
+        {
+            GraphicsBuffer Buffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, Manager.MeshCount * ItemLength, Size);
+            Manager.Material.SetBuffer(Name, Buffer);
+            return new WrappedMultiBuffer<T>(Buffer, getCustomData, ItemLength, Manager.MeshCount, Name, Manager.Material);
+        }
+    }
+    /// <summary>
+    /// a interface so the manager can import custom buffers of different types
+    /// </summary>
+    public interface IBufferData {
+        /// <summary>
+        /// adds a custom buffer to a manager and returns it
+        /// </summary>
+        IBuffer GetBuffer(MeshManager ManagerData);
+        /// <summary>
+        /// the name of the custom buffer
+        /// </summary>
+        string Name { get; }
+    }
+
+    /// <summary>
+    /// a custom buffer configuration, which tells the sphere manager to add a new graphics buffer
+    /// </summary>
+    public class GraphicsBufferData<T> : IBufferData where T : struct
+    {
+        /// <summary>
+        /// a function that returns your custom data for each sphere tile
+        /// </summary>
+        public readonly GetCustomData<T> getCustomData;
+        /// <summary>
+        /// the name of this buffer, in your custom shader
+        /// </summary>
+        public string Name { get; set; }
+        /// <summary>
+        /// the size of the data being stored, in bytes
+        /// </summary>
+        public readonly int Size;
+        /// <summary>
+        /// a custom buffer configuration, which tells the sphere manager to add a new compute buffer
+        /// </summary>
+        /// <param name="Name">the name of this buffer, in your custom shader</param>
+        /// <param name="getCustomData">a function that returns your custom data for each sphere tile</param>
+        public GraphicsBufferData(string Name, GetCustomData<T> getCustomData)
+        {
+            this.Name = Name;
+            Size = Marshal.SizeOf<T>();
+            this.getCustomData = getCustomData;
+        }
+        /// <inheritdoc/>
+        public IBuffer GetBuffer(MeshManager manager)
+        {
+            return new WrappedBuffer<T>(new Buffer<T>(GraphicsBuffer.Target.Structured, manager.MeshCount, manager.Material, Name), getCustomData);
+        }
+    }
+    public struct Range
+    {
+        public int Min;
+        public int Max;
+        public Range(int Min, int Max)
+        {
+            this.Min = Min;
+            this.Max = Max;
+        }
+    }
+    /// <summary>
+    /// a function that reads/writes the Buffer at Index*ItemSize with the data of the item at Index, this is used for multi buffers. ItemSize is the size of each item in the buffer
+    /// </summary>
+    /// <remarks>Index, the index of the item in the buffer</remarks>
+    public delegate void BufferFunction<T>(int Index, NativeArray<T> Buffer, int ItemSize) where T : struct;
+    /// <summary>
+    /// a function that returns a custom data
+    /// </summary>
+    /// <remarks>Index, the index of the tile in the manager</remarks>
+    public delegate T GetCustomData<T>(int Index) where T : struct;
+    /// <summary>
+    /// the Range of Rows and Cols around the camera that draw their tiles
+    /// </summary>
+    public delegate void GetCameraRange(StaticHandler SphereManager, out Range Rows, out Range Cols);
+    public class ManagerSettings
+    {
+        public ManagerSettings(Mesh Mesh, Material Material, ComputeShader Shader, List<IBufferData> Buffers, MeshHandler Renderer)
+        {
+            this.Mesh = Mesh;
+            this.Material = Material;
+            this.ComputeShader = Shader;
+            this.Buffers = Buffers;
+            this.Handler = Renderer;
+        }
+        public MeshHandler Handler;
+        /// <summary>
+        /// the mesh used to display tiles
+        /// </summary>
+        public Mesh Mesh;
+        /// <summary>
+        /// the Material of the meshes, must have the compound spheres shader to work!
+        /// </summary>
+        public Material Material;
+        /// <summary>
+        /// a list of buffers this manager has
+        /// </summary>
+        public List<IBufferData> Buffers;
+
+        public ComputeShader ComputeShader;
+    }
+}

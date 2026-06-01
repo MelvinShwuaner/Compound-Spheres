@@ -1,10 +1,13 @@
-﻿using System;
+﻿using JetBrains.Annotations;
+using System;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 using Unity.Collections;
 using UnityEngine;
+using static UnityEngine.GraphicsBuffer;
 
-namespace CompoundSpheres
+namespace CompoundMeshes
 {
     /// <summary>
     /// An interface meant so the manager can control custom buffers of different types
@@ -19,6 +22,14 @@ namespace CompoundSpheres
         /// refreshes the buffer
         /// </summary>
         public void Refresh();
+        /// <summary>
+        /// sets a custom property.
+        /// </summary>
+        public void SetProperty(string Name, object Value);
+        /// <summary>
+        /// sets the size
+        /// </summary>
+        public void Enlarge(int Size);
     }
     public abstract class BufferBase<T> : IDisposable where T : struct
     {
@@ -65,7 +76,11 @@ namespace CompoundSpheres
             }
 
             if (arrayStart != -1)
+            {
+                for (int i = arrayStart; i < arrayStart + bufferSize; i++)
+                    Dirty[i] = false;
                 SetData(arrayStart, bufferSize);
+            }
 
             IsDirty = false;
         }
@@ -105,6 +120,17 @@ namespace CompoundSpheres
             Dirty = new bool[Length];
             Data = new NativeArray<T>(Length, Allocator.Persistent);
         }
+        public void SetProperty(string name, float value)
+        {
+            if(Material  != null)
+            {
+                Material.SetFloat(name, value);
+            }
+            else
+            {
+                Property.SetFloat(name, value);
+            }
+        }
         public override void Dispose()
         {
             buffer.Dispose();
@@ -117,7 +143,7 @@ namespace CompoundSpheres
         public override void Enlarge(int NewSize)
         {
             GraphicsBuffer newBuffer = new GraphicsBuffer(buffer.target, NewSize, Marshal.SizeOf<T>());
-            NativeArray<T> temp = new NativeArray<T>(NewSize, Allocator.Temp);
+            NativeArray<T> temp = new NativeArray<T>(NewSize, Allocator.Persistent);
 
             bool[] dirty = new bool[NewSize];
             Dirty.CopyTo(dirty, 0);
@@ -149,8 +175,12 @@ namespace CompoundSpheres
         {
             if ((index+1) * ItemSize > Size)
             {
-                Enlarge((index+1) * 2 * ItemSize);
+                Enlarge((index+1) * 2);
             }
+        }
+        public override void Enlarge(int NewSize)
+        {
+            base.Enlarge(NewSize*ItemSize);
         }
         /// <summary>
         /// writes to the Data Array using a Function. 
@@ -191,6 +221,14 @@ namespace CompoundSpheres
             Dirty = new bool[Length];
             Data = new NativeArray<T>(Length, Allocator.Persistent);
         }
+        public void SetProperty(string name, float value)
+        {
+            Shader.SetFloat(name, value);
+        }
+        public void SetProperty(string name, Texture value)
+        {
+            Shader.SetTexture(Kernel, name, value);
+        }
         public override void Dispose()
         {
             Buffer.Dispose();
@@ -203,7 +241,7 @@ namespace CompoundSpheres
         public override void Enlarge(int NewSize)
         {
             ComputeBuffer newBuffer = new ComputeBuffer(NewSize, Marshal.SizeOf<T>());
-            NativeArray<T> temp = new NativeArray<T>(NewSize, Allocator.Temp);
+            NativeArray<T> temp = new NativeArray<T>(NewSize, Allocator.Persistent);
 
             bool[] dirty = new bool[NewSize];
             Dirty.CopyTo(dirty, 0);
@@ -234,10 +272,8 @@ namespace CompoundSpheres
         /// </summary>
         public void Set(Func<int, T> function)
         {
-            Parallel.For(0, Size, (int i) =>
-            {
+            for (int i = 0; i < Size; i++)
                 Data[i] = function(i);
-            });
             Buffer.SetData(Data);
         }
     }
@@ -262,10 +298,8 @@ namespace CompoundSpheres
         /// </summary>
         public void Set(Func<int, T> function)
         {
-            Parallel.For(0, Size, (int i) =>
-            {
+            for (int i = 0; i < Size; i++)
                 Data[i] = function(i);
-            });
             buffer.SetData(Data);
         }
     }
@@ -301,6 +335,23 @@ namespace CompoundSpheres
         {
             Buffer.Dispose();
         }
+
+        public void SetProperty(string Name, object Value)
+        {
+            if(Value is float num)
+            {
+                Buffer.SetProperty(Name, num);
+            }
+            else
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        public void Enlarge(int Size)
+        {
+            Buffer.Enlarge(Size);
+        }
     }
     /// <summary>
     /// a class for managing a buffer efficiently
@@ -334,6 +385,22 @@ namespace CompoundSpheres
         {
             Buffer.Dispose();
         }
+        public void SetProperty(string Name, object Value)
+        {
+            if (Value is float num)
+            {
+                Buffer.SetProperty(Name, num);
+            }
+            else
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        public void Enlarge(int Size)
+        {
+            Buffer.Enlarge(Size);
+        }
     }
     public class WrappedComputeBuffer<T> : IBuffer where T : struct
     {
@@ -356,6 +423,26 @@ namespace CompoundSpheres
         {
             Buffer.Dispose();
         }
+
+        public void SetProperty(string Name, object Value)
+        {
+            switch (Value)
+            {
+                case float num:
+                    Buffer.SetProperty(Name, num);
+                    break;
+                case Texture texture:
+                    Buffer.SetProperty(Name, texture);
+                    break;
+                default:
+                    throw new NotImplementedException();
+            }
+        }
+
+        public void Enlarge(int Size)
+        {
+            Buffer.Enlarge(Size);
+        }
     }
     /// <summary>
     /// a buffer between the compute shader and a graphics buffer
@@ -363,7 +450,7 @@ namespace CompoundSpheres
     /// <typeparam name="T"></typeparam>
     public class ComputeGraphicsBuffer<T> : IBuffer where T : struct
     {
-        public GraphicsBuffer Buffer { get; private set; }
+        public ComputeBuffer Buffer { get; private set; }
         public ComputeBuffer<int> Dirty { get; private set; }
         public Material Material { get; private set; }
         public int Kernel { get; private set; }
@@ -371,35 +458,87 @@ namespace CompoundSpheres
         public string ComputeName { get; private set; }
         public string MaterialName { get; private set; }
         private int ThreadCount;
-        public ComputeGraphicsBuffer(ComputeShader Shader, Material material, int Kernel, string ComputeName, string MaterialName, int Length, int Threads)
+        private int Threads;
+        public ComputeBufferType Type { get; private set; }
+        public bool DirtyEnabled => Dirty != null;
+        public ComputeGraphicsBuffer(ComputeShader Shader, Material material, int Kernel, string ComputeName, string MaterialName, int Length, int Threads, ComputeBufferType type = ComputeBufferType.Structured)
         {
             this.Shader = Shader;
             this.Material = material;
             this.ComputeName = ComputeName;
             this.MaterialName = MaterialName;
             this.Kernel = Kernel;
-            Buffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, Length, Marshal.SizeOf<T>());
+            Type = type;
+            Buffer = new ComputeBuffer(Length, Marshal.SizeOf<T>(), type);
             Shader.SetBuffer(Kernel, ComputeName, Buffer);
             Material.SetBuffer(MaterialName, Buffer);
             ThreadCount = Mathf.CeilToInt(Length / Threads);
-            Dirty = new ComputeBuffer<int>(Shader, Kernel, "Dirty", Length);
-            Dirty.Set((int i) => 1);
+            this.Threads = Threads;
+            if (type != ComputeBufferType.Append)
+            {
+                Dirty = new ComputeBuffer<int>(Shader, Kernel, "Dirty", Length);
+                Dirty.Set((int i) => 1);
+            }
+        }
+        public void SetComputeProperty(string name, Texture Texture)
+        {
+            Shader.SetTexture(Kernel, name, Texture);
         }
         public void Dispose()
         {
             Buffer.Dispose();
-            Dirty.Dispose();
+            Dirty?.Dispose();
         }
 
         public void Refresh()
         {
-            Dirty.Refresh();
+            Dirty?.Refresh();
+            if(Type == ComputeBufferType.Append)
+            {
+                Buffer.SetCounterValue(0);
+            }
             Shader.Dispatch(Kernel, ThreadCount, 1, 1);
         }
 
         public void Update(int I)
         {
-            Dirty[I] = 1;
+            if (DirtyEnabled)
+            {
+                Dirty[I] = 1;
+            }
+        }
+
+        public void SetProperty(string Name, object Value)
+        {
+            switch (Value)
+            {
+                case float num:
+                    Shader.SetFloat(Name, num);
+                    break;
+                case Texture texture:
+                    Shader.SetTexture(Kernel, Name, texture);
+                    break;
+                default:
+                    throw new NotImplementedException();
+            }
+        }
+
+        public void Enlarge(int Size)
+        {
+            Dirty?.Enlarge(Size);
+
+            T[] Temp = new T[Buffer.count]; 
+            Buffer.GetData(Temp);
+            Buffer.Dispose();             
+
+            Buffer = new ComputeBuffer(Size, Marshal.SizeOf<T>(), Type);
+            Shader.SetBuffer(Kernel, ComputeName, Buffer);
+            Material.SetBuffer(MaterialName, Buffer);
+
+            if (Type != ComputeBufferType.Append)
+                Buffer.SetData(Temp);
+
+            ThreadCount = Mathf.CeilToInt(Size / Threads);
         }
     }
 }
