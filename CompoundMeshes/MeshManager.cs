@@ -50,9 +50,13 @@ namespace CompoundMeshes
         {
             ComputeShader.SetFloat(name, value);
         }
-        public void SetBufferProperty(string buffer, string name, object value)
+        public void SetComputeProperty(string name, int value)
         {
-            Buffers[buffer].SetProperty(name, value);
+            ComputeShader.SetInt(name, value);
+        }
+        public void SetComputeProperty(string kernel, string name, Texture value)
+        {
+            ComputeShader.SetTexture(ComputeShader.FindKernel(kernel), name, value);
         }
         public void SetProperty(string name,  float value)
         {

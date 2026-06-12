@@ -67,7 +67,7 @@ namespace CompoundMeshes
            Manager.MeshCount = Count;
            int kernel = Manager.ComputeShader.FindKernel(IndicesKernel);
            VisibileIndices = new ComputeBuffer<int>(Manager.ComputeShader, kernel, "VisibleIndices", Count);
-           Indices = new ComputeGraphicsBuffer<int>(Manager.ComputeShader, Manager.Material, kernel, "OutputIndices", "Indices", Count, 64, ComputeBufferType.Append);
+           Indices = new ComputeGraphicsBuffer<int>(Manager.ComputeShader, Manager.Material, kernel, "OutputIndices", "Indices", Count, ComputeBufferType.Append);
 
             argsBuffer = new ComputeBuffer(1, args.Length * sizeof(uint),
             ComputeBufferType.IndirectArguments);

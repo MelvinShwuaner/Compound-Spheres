@@ -11,18 +11,16 @@ namespace CompoundMeshes
         public string Name { get; set; }
         public string Kernel;
         public string ComputeName;
-        public int Threads;
         public IBuffer GetBuffer(MeshManager ManagerData)
         {
-           var buffer = new ComputeGraphicsBuffer<T>(ManagerData.ComputeShader, ManagerData.Material, ManagerData.ComputeShader.FindKernel(Kernel), ComputeName, Name, ManagerData.MeshCount, Threads);
+           var buffer = new ComputeGraphicsBuffer<T>(ManagerData.ComputeShader, ManagerData.Material, ManagerData.ComputeShader.FindKernel(Kernel), ComputeName, Name, ManagerData.MeshCount);
            return buffer;
         }
-        public ComputeGraphicsBufferData(string Name, string ComputeName, string Kernel, int Threads)
+        public ComputeGraphicsBufferData(string Name, string ComputeName, string Kernel)
         {
             this.Name = Name;
             this.Kernel = Kernel;
             this.ComputeName = ComputeName;
-            this.Threads = Threads;
         }
     }
     public class ComputeBufferData<T> : IBufferData where T : struct
