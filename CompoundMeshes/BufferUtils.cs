@@ -133,8 +133,8 @@ namespace CompoundMeshes
             bool[] dirty = new bool[NewSize];
             Dirty.CopyTo(dirty, 0);
             Dirty = dirty;
-
-            Data.CopyTo(temp);
+            
+            NativeArray<T>.Copy(Data, temp, Data.Length);
             buffer.Dispose();
             buffer = newBuffer;
             buffer.SetData(temp);
@@ -168,7 +168,7 @@ namespace CompoundMeshes
             base.Enlarge(NewSize*ItemSize);
         }
         /// <summary>
-        /// writes to the Data Array using a Function. 
+        /// writes to the Data Array using a Function. marks it dirty
         /// </summary>
         public void Write(int Index, BufferFunction<T> Function)
         {
@@ -178,7 +178,7 @@ namespace CompoundMeshes
             Function(Index, Data, ItemSize);
         }
         /// <summary>
-        /// Reads from the Data Array using a Function. 
+        /// Reads from the Data Array using a Function. doesnt mark it dirty
         /// </summary>
         public void Read(int Index, BufferFunction<T> Function)
         {
@@ -224,7 +224,7 @@ namespace CompoundMeshes
             Dirty.CopyTo(dirty, 0);
             Dirty = dirty;
 
-            Data.CopyTo(temp);
+            NativeArray<T>.Copy(Data, temp, Data.Length);
             Buffer.Dispose();
             Buffer = newBuffer;
             Buffer.SetData(temp);
@@ -413,7 +413,7 @@ namespace CompoundMeshes
             Material.SetBuffer(MaterialName, Buffer);
             Shader.GetKernelThreadGroupSizes(Kernel, out uint x, out _, out _);
             this.Threads = x;
-            ThreadCount = Mathf.CeilToInt(Length / Threads);
+            ThreadCount = Mathf.CeilToInt((float)Length / Threads);
             if (type != ComputeBufferType.Append)
             {
                 Dirty = new ComputeBuffer<int>(Shader, Kernel, "Dirty", Length);

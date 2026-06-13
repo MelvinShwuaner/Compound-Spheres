@@ -69,10 +69,9 @@ namespace CompoundMeshes
         {
             return StaticRows.GetEnumerator();
         }
-        public void Prepare(MeshManager Manager)
+        public int Prepare(MeshManager Manager)
         {
             this.Manager = Manager;
-            Manager.MeshCount = Cols * Rows;
             commandBuf = new GraphicsBuffer(GraphicsBuffer.Target.IndirectArguments, 1, GraphicsBuffer.IndirectDrawIndexedArgs.size);
             commandData[0].indexCountPerInstance = Mesh.GetIndexCount(0);
             commandData[0].instanceCount = (uint)Cols;
@@ -86,6 +85,8 @@ namespace CompoundMeshes
                     StaticTile Tile = Tiles[(i * Cols) + j] = new StaticTile(i, j, row);
                 }
             }
+
+            return Cols * Rows;
         }
         public StaticHandler(int Rows, int Cols, GetCameraRange GetRange)
         {

@@ -37,10 +37,10 @@ namespace CompoundMeshes
         }
         public void Enlarge(int New)
         {
-            int NewSize = Count + New;
-            VisibileIndices.Enlarge(NewSize);
-            Indices.Enlarge(NewSize);
-            Manager.SetSize(NewSize);
+            Count += New;
+            VisibileIndices.Enlarge(Count);
+            Indices.Enlarge(Count);
+            Manager.SetSize(Count);
         }
         public void Dispose()
         {
@@ -61,10 +61,9 @@ namespace CompoundMeshes
         public MeshManager Manager { get; private set; }
         public Mesh mesh => Manager.Mesh;
         public Material material => Manager.Material;
-        public void Prepare(MeshManager Manager)
+        public int Prepare(MeshManager Manager)
         {
             this.Manager = Manager;
-           Manager.MeshCount = Count;
            int kernel = Manager.ComputeShader.FindKernel(IndicesKernel);
            VisibileIndices = new ComputeBuffer<int>(Manager.ComputeShader, kernel, "VisibleIndices", Count);
            Indices = new ComputeGraphicsBuffer<int>(Manager.ComputeShader, Manager.Material, kernel, "OutputIndices", "Indices", Count, ComputeBufferType.Append);
@@ -76,6 +75,7 @@ namespace CompoundMeshes
             args[2] = mesh.GetIndexStart(0);
             args[3] = (uint)mesh.GetBaseVertex(0);
             argsBuffer.SetData(args);
+            return Count;
         }
     }
 }

@@ -9,6 +9,10 @@ namespace CompoundMeshes
 {
     public class MeshManager : MonoBehaviour
     {
+        private MeshManager()
+        {
+            
+        }
         public ComputeShader ComputeShader { get; protected set; }
         /// <summary>
         /// The material used, every tile has the same material
@@ -18,7 +22,7 @@ namespace CompoundMeshes
         /// <summary>
         /// the total amount of tiles
         /// </summary>
-        public int MeshCount;
+        public int MeshCount { get; private set; }
         /// <summary>
         /// The Mesh used, every tile has the same mesh
         /// </summary>
@@ -39,11 +43,12 @@ namespace CompoundMeshes
             Material = Settings.Material;
             ComputeShader = Settings.ComputeShader;
             Handler = Settings.Handler;
-            Handler.Prepare(this);
+            MeshCount = Handler.Prepare(this);
             foreach (IBufferData buffer in Settings.Buffers)
             {
                 AddBuffer(buffer);
             }
+            ComputeShader.SetInt("Count", MeshCount);
             return this;
         }
         public void SetComputeProperty(string name, float value)
@@ -96,7 +101,7 @@ namespace CompoundMeshes
         {
             Buffers[Name].Refresh();
         }
-        public void Update(string Name, int Index)
+        public void UpdateBuffer(string Name, int Index)
         {
             Buffers[Name].Update(Index);
         }
@@ -109,10 +114,12 @@ namespace CompoundMeshes
         }
         public void SetSize(int Size)
         {
+            MeshCount = Size;
             foreach (var buffer in Buffers)
             {
                 buffer.Value.Enlarge(Size);
             }
+            ComputeShader.SetInt("Count", MeshCount);
         }
         public void DrawMeshes()
         {
@@ -126,7 +133,7 @@ namespace CompoundMeshes
     }
     public interface MeshHandler : IDisposable
     {
-        public void Prepare(MeshManager Manager);
+        public int Prepare(MeshManager Manager);
         public void DrawMeshes();
     }
 }
