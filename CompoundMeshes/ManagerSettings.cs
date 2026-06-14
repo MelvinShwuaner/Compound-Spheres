@@ -47,7 +47,7 @@ namespace CompoundMeshes
         /// <summary>
         /// a function that returns your custom data for each sphere tile
         /// </summary>
-        public readonly BufferFunction<T> getCustomData;
+        public readonly WriteFunction<T> getCustomData;
         /// <summary>
         /// the name of this buffer, in your custom shader
         /// </summary>
@@ -66,7 +66,7 @@ namespace CompoundMeshes
         /// <param name="Name">the name of this buffer, in your custom shader</param>
         /// <param name="ItemLength">the size of each item in the buffer. </param>
         /// <param name="getCustomData">a function that returns your custom data for each sphere tile</param>
-        public DynamicBufferData(string Name, int ItemLength, BufferFunction<T> getCustomData)
+        public DynamicBufferData(string Name, int ItemLength, WriteFunction<T> getCustomData)
         {
             this.Name = Name;
             Size = Marshal.SizeOf<T>();
@@ -140,10 +140,15 @@ namespace CompoundMeshes
         }
     }
     /// <summary>
-    /// a function that reads/writes the Buffer at Index*ItemSize with the data of the item at Index, this is used for multi buffers. ItemSize is the size of each item in the buffer
+    /// a function that reads a item at Index and SubIndex
     /// </summary>
     /// <remarks>Index, the index of the item in the buffer</remarks>
-    public delegate void BufferFunction<T>(int Index, NativeArray<T> Buffer, int ItemSize) where T : struct;
+    public delegate void ReadFunction<T>(int Index, int SubIndex, T item) where T : struct;
+    /// <summary>
+    /// a function that returns a item at Index and SubIndex
+    /// </summary>
+    /// <remarks>Index, the index of the item in the buffer</remarks>
+    public delegate T WriteFunction<T>(int Index, int SubIndex) where T : struct;
     /// <summary>
     /// a function that returns a custom data
     /// </summary>

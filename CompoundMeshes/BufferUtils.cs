@@ -5,8 +5,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Unity.Collections;
 using UnityEngine;
-using static UnityEngine.GraphicsBuffer;
-
 namespace CompoundMeshes
 {
     /// <summary>
@@ -96,7 +94,6 @@ namespace CompoundMeshes
     {
         public GraphicsBuffer buffer { get; private set; }
         public readonly Material Material;
-        public readonly MaterialPropertyBlock Property;
         public readonly string Name;
         public GraphicsBufferBase(GraphicsBuffer Buffer, Material material, string name, int Length)
         {
@@ -104,15 +101,6 @@ namespace CompoundMeshes
             Material = material;
             Name = name;
             Material?.SetBuffer(Name, buffer);
-            Dirty = new bool[Length];
-            Data = new NativeArray<T>(Length, Allocator.Persistent);
-        }
-        public GraphicsBufferBase(GraphicsBuffer Buffer, MaterialPropertyBlock material, string name, int Length)
-        {
-            buffer = Buffer;
-            Property = material;
-            Name = name;
-            Property.SetBuffer(Name, buffer);
             Dirty = new bool[Length];
             Data = new NativeArray<T>(Length, Allocator.Persistent);
         }
@@ -140,20 +128,12 @@ namespace CompoundMeshes
             buffer.SetData(temp);
             Data.Dispose();
             Data = temp;
-            if (Material != null)
-            {
-                Material.SetBuffer(Name, buffer);
-            }
-            else
-            {
-                Property.SetBuffer(Name, buffer);
-            }
+            Material.SetBuffer(Name, buffer);
         }
     }
     public class MultiBuffer<T> : GraphicsBufferBase<T> where T : struct
     {
         public MultiBuffer(GraphicsBuffer.Target target, int Length, int ItemSize, Material material, string name) : base(new GraphicsBuffer(target, Length*ItemSize, Marshal.SizeOf<T>()), material, name, Length*ItemSize) { this.ItemSize = ItemSize; }
-        public MultiBuffer(GraphicsBuffer.Target target, int Length, int ItemSize, MaterialPropertyBlock material, string name) : base(new GraphicsBuffer(target, Length*ItemSize, Marshal.SizeOf<T>()), material, name, Length*ItemSize) { this.ItemSize = ItemSize; }
         public MultiBuffer(GraphicsBuffer Buffer, Material material, string name, int length, int ItemSize) : base(Buffer, material, name, length*ItemSize) { this.ItemSize = ItemSize; }
         public readonly int ItemSize = 1;
         void Check(int index)
@@ -170,20 +150,28 @@ namespace CompoundMeshes
         /// <summary>
         /// writes to the Data Array using a Function. marks it dirty
         /// </summary>
-        public void Write(int Index, BufferFunction<T> Function)
+        public void Write(int Index, WriteFunction<T> Function)
         {
             Check(Index);
             Dirty[Index] = true;
             IsDirty = true;
-            Function(Index, Data, ItemSize);
+            int Base = Index * ItemSize;
+            Parallel.For(0, ItemSize, i =>
+            {
+                Data[Base + i] = Function(Index, i);
+            });
         }
         /// <summary>
         /// Reads from the Data Array using a Function. doesnt mark it dirty
         /// </summary>
-        public void Read(int Index, BufferFunction<T> Function)
+        public void Read(int Index, ReadFunction<T> Function)
         {
             Check(Index);
-            Function(Index, Data, ItemSize);
+            int Base = Index * ItemSize;
+            Parallel.For(0, ItemSize, i =>
+            {
+                Function(Index, i, Data[Base + i]);
+            });
         }
         protected override void SetData(int Start, int Count)
         {
@@ -269,7 +257,6 @@ namespace CompoundMeshes
             }
         }
         public Buffer(GraphicsBuffer.Target target, int Length, Material material, string name) : base(new GraphicsBuffer(target, Length, Marshal.SizeOf<T>()), material, name, Length) { }
-        public Buffer(GraphicsBuffer.Target target, int Length, MaterialPropertyBlock material, string name) : base(new GraphicsBuffer(target, Length, Marshal.SizeOf<T>()), material, name, Length) { }
         /// <summary>
         /// sets a buffer, updating values in the Data Array, NOT efficent for updating buffers, only call this to create buffers
         /// </summary>
@@ -289,7 +276,7 @@ namespace CompoundMeshes
         /// the buffer this is managing
         /// </summary>
         public MultiBuffer<T> Buffer;
-        readonly BufferFunction<T> getCustomData;
+        readonly WriteFunction<T> getCustomData;
         /// <summary>
         /// refreshes all of the data
         /// </summary>
@@ -297,7 +284,7 @@ namespace CompoundMeshes
         {
            Buffer.Refresh();
         }
-        internal WrappedMultiBuffer(GraphicsBuffer Buffer, BufferFunction<T> getdata, int ItemLength, int InitialLength, string name, Material material)
+        internal WrappedMultiBuffer(GraphicsBuffer Buffer, WriteFunction<T> getdata, int ItemLength, int InitialLength, string name, Material material)
         {
             getCustomData = getdata;
             this.Buffer = new MultiBuffer<T>(Buffer, material, name, InitialLength, ItemLength);
@@ -463,7 +450,7 @@ namespace CompoundMeshes
             if (Type != ComputeBufferType.Append)
                 Buffer.SetData(Temp);
 
-            ThreadCount = Mathf.CeilToInt(Size / Threads);
+            ThreadCount = Mathf.CeilToInt((float)Size / Threads);
         }
     }
 }
