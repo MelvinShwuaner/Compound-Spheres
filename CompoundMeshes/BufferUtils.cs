@@ -35,6 +35,10 @@ namespace CompoundMeshes
         {
             Data.Dispose();
         }
+        /// <summary>
+        /// if the buffer is a RWStructuredBuffer, use this to update the data with values from GPU. 
+        /// </summary>
+        public abstract void RefreshFromGPU();
         public void Refresh()
         {
             if (!IsDirty) return;
@@ -95,7 +99,7 @@ namespace CompoundMeshes
         public GraphicsBuffer buffer { get; private set; }
         public readonly Material Material;
         public readonly string Name;
-        public GraphicsBufferBase(GraphicsBuffer Buffer, Material material, string name, int Length)
+        protected GraphicsBufferBase(GraphicsBuffer Buffer, Material material, string name, int Length)
         {
             buffer = Buffer;
             Material = material;
@@ -103,6 +107,12 @@ namespace CompoundMeshes
             Material?.SetBuffer(Name, buffer);
             Dirty = new bool[Length];
             Data = new NativeArray<T>(Length, Allocator.Persistent);
+        }
+        public override void RefreshFromGPU()
+        { 
+           var temp = new T[Data.Length];
+           buffer.GetData(temp);
+           Data.CopyFrom(temp);
         }
         public override void Dispose()
         {
@@ -143,6 +153,7 @@ namespace CompoundMeshes
                 Enlarge((index+1) * 2);
             }
         }
+
         public override void Enlarge(int NewSize)
         {
             base.Enlarge(NewSize*ItemSize);
@@ -193,6 +204,12 @@ namespace CompoundMeshes
             Shader.SetBuffer(Kernel, Name, Buffer);
             Dirty = new bool[Length];
             Data = new NativeArray<T>(Length, Allocator.Persistent);
+        }
+        public override void RefreshFromGPU()
+        { 
+            var temp = new T[Data.Length];
+            Buffer.GetData(temp);
+            Data.CopyFrom(temp);
         }
         public override void Dispose()
         {
@@ -302,7 +319,8 @@ namespace CompoundMeshes
 
         public void Enlarge(int Size)
         {
-            Buffer.Enlarge(Size);
+            if(Size > Buffer.Size*Buffer.ItemSize)
+                Buffer.Enlarge(Size);
         }
     }
     /// <summary>
@@ -320,6 +338,8 @@ namespace CompoundMeshes
         /// </summary>
         public void Refresh()
         {
+            if (getCustomData == null)
+                return;
             Buffer.Refresh();
         }
         internal WrappedBuffer(Buffer<T> Buffer, GetCustomData<T> getdata)
@@ -327,9 +347,16 @@ namespace CompoundMeshes
             getCustomData = getdata;
             this.Buffer = Buffer;
         }
+        internal WrappedBuffer(Buffer<T> Buffer, T[] data)
+        {
+            this.Buffer = Buffer;
+            Buffer.Set(i => data[i]);
+        }
         /// <inheritdoc/>
         public void Update(int I)
         {
+            if (getCustomData == null)
+                return;
             Buffer[I] = getCustomData(I);
         }
         /// <inheritdoc/>
@@ -337,18 +364,23 @@ namespace CompoundMeshes
         {
             Buffer.Dispose();
         }
-
         public void Enlarge(int Size)
         {
-            Buffer.Enlarge(Size);
+            if (getCustomData != null)
+                Buffer.Enlarge(Size);
         }
     }
     public class WrappedComputeBuffer<T> : IBuffer where T : struct
     {
         public ComputeBuffer<T> Buffer;
         readonly GetCustomData<T> getCustomData;
+        /// <summary>
+        /// refreshes all of the data
+        /// </summary>
         public void Refresh()
         {
+            if (getCustomData == null)
+                return;
             Buffer.Refresh();
         }
         internal WrappedComputeBuffer(ComputeBuffer<T> Buffer, GetCustomData<T> getdata)
@@ -356,18 +388,27 @@ namespace CompoundMeshes
             getCustomData = getdata;
             this.Buffer = Buffer;
         }
+        internal WrappedComputeBuffer(ComputeBuffer<T> Buffer, T[] data)
+        {
+            this.Buffer = Buffer;
+            Buffer.Set(i => data[i]);
+        }
+        /// <inheritdoc/>
         public void Update(int I)
         {
+            if (getCustomData == null)
+                return;
             Buffer[I] = getCustomData(I);
         }
+        /// <inheritdoc/>
         public void Dispose()
         {
             Buffer.Dispose();
         }
-
         public void Enlarge(int Size)
         {
-            Buffer.Enlarge(Size);
+            if (getCustomData != null)
+                Buffer.Enlarge(Size);
         }
     }
     /// <summary>

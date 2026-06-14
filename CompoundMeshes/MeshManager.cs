@@ -78,6 +78,10 @@ namespace CompoundMeshes
         {
             Destroy(gameObject);
         }
+        public T GetBuffer<T>(string Name) where T : IBuffer
+        {
+            return (T)Buffers[Name];
+        }
         /// <summary>
         /// a non-generic method of adding a buffer
         /// </summary>
