@@ -167,10 +167,10 @@ namespace CompoundMeshes
             Dirty[Index] = true;
             IsDirty = true;
             int Base = Index * ItemSize;
-            Parallel.For(0, ItemSize, i =>
+            for (int i = 0; i < ItemSize; i++)
             {
                 Data[Base + i] = Function(Index, i);
-            });
+            }
         }
         /// <summary>
         /// Reads from the Data Array using a Function. doesnt mark it dirty
@@ -179,10 +179,10 @@ namespace CompoundMeshes
         {
             Check(Index);
             int Base = Index * ItemSize;
-            Parallel.For(0, ItemSize, i =>
+            for (int i = 0; i < ItemSize; i++)
             {
                 Function(Index, i, Data[Base + i]);
-            });
+            }
         }
         protected override void SetData(int Start, int Count)
         {
@@ -412,21 +412,21 @@ namespace CompoundMeshes
         }
     }
     /// <summary>
-    /// a buffer between the compute shader and a graphics buffer
+    /// a buffer between the compute shader and the graphics shader
     /// </summary>
     /// <typeparam name="T"></typeparam>
     public class ComputeGraphicsBuffer<T> : IBuffer where T : struct
     {
         public ComputeBuffer Buffer { get; private set; }
-        public ComputeBuffer<int> Dirty { get; private set; }
-        public Material Material { get; private set; }
-        public int Kernel { get; private set; }
-        public ComputeShader Shader { get; private set; }
-        public string ComputeName { get; private set; }
-        public string MaterialName { get; private set; }
+        public ComputeBuffer<int> Dirty { get; }
+        public Material Material { get; }
+        public int Kernel { get; }
+        public ComputeShader Shader { get; }
+        public string ComputeName { get; }
+        public string MaterialName { get; }
         private int ThreadCount;
-        private uint Threads;
-        public ComputeBufferType Type { get; private set; }
+        private readonly uint Threads;
+        public ComputeBufferType Type { get; }
         public bool DirtyEnabled => Dirty != null;
         public ComputeGraphicsBuffer(ComputeShader Shader, Material material, int Kernel, string ComputeName, string MaterialName, int Length, ComputeBufferType type = ComputeBufferType.Structured)
         {
@@ -447,10 +447,6 @@ namespace CompoundMeshes
                 Dirty = new ComputeBuffer<int>(Shader, Kernel, "Dirty", Length);
                 Dirty.Set((int i) => 1);
             }
-        }
-        public void SetComputeProperty(string name, Texture Texture)
-        {
-            Shader.SetTexture(Kernel, name, Texture);
         }
         public void Dispose()
         {
