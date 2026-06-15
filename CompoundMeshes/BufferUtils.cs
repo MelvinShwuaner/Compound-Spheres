@@ -477,7 +477,9 @@ namespace CompoundMeshes
             Dirty?.Enlarge(Size);
 
             T[] Temp = new T[Buffer.count]; 
-            Buffer.GetData(Temp);
+            if(Type != ComputeBufferType.Append)
+                Buffer.GetData(Temp);
+            
             Buffer.Dispose();             
 
             Buffer = new ComputeBuffer(Size, Marshal.SizeOf<T>(), Type);
