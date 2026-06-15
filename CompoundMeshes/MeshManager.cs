@@ -121,7 +121,7 @@ namespace CompoundMeshes
             MeshCount = Size;
             foreach (var buffer in Buffers)
             {
-                buffer.Value.Enlarge(Size);
+                buffer.Value.SetSize(Size);
             }
             ComputeShader.SetInt("Count", MeshCount);
         }

@@ -23,7 +23,7 @@ namespace CompoundMeshes
         /// <summary>
         /// sets the size
         /// </summary>
-        public void Enlarge(int Size);
+        public void SetSize(int Size);
     }
     public abstract class BufferBase<T> : IDisposable where T : struct
     {
@@ -317,7 +317,7 @@ namespace CompoundMeshes
             Buffer.Dispose();
         }
 
-        public void Enlarge(int Size)
+        public void SetSize(int Size)
         {
             if(Size > Buffer.Size*Buffer.ItemSize)
                 Buffer.Enlarge(Size);
@@ -364,7 +364,7 @@ namespace CompoundMeshes
         {
             Buffer.Dispose();
         }
-        public void Enlarge(int Size)
+        public void SetSize(int Size)
         {
             if (getCustomData != null)
                 Buffer.Enlarge(Size);
@@ -405,7 +405,7 @@ namespace CompoundMeshes
         {
             Buffer.Dispose();
         }
-        public void Enlarge(int Size)
+        public void SetSize(int Size)
         {
             if (getCustomData != null)
                 Buffer.Enlarge(Size);
@@ -472,7 +472,7 @@ namespace CompoundMeshes
             }
         }
 
-        public void Enlarge(int Size)
+        public void SetSize(int Size)
         {
             Dirty?.Enlarge(Size);
 

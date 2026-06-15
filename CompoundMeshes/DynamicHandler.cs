@@ -39,7 +39,7 @@ namespace CompoundMeshes
         {
             Count += New;
             VisibileIndices.Enlarge(Count);
-            Indices.Enlarge(Count);
+            Indices.SetSize(Count);
             Manager.SetSize(Count);
         }
         public void Dispose()
